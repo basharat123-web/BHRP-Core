@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, Users, Calendar, Radio, Server, Menu, X, BookOpen, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Shield, Users, Calendar, Menu, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 interface NavbarProps {
-  activeTab: 'roster' | 'events' | 'guide';
-  setActiveTab: (tab: 'roster' | 'events' | 'guide') => void;
+  activeTab: 'roster' | 'events';
+  setActiveTab: (tab: 'roster' | 'events') => void;
   memberCount: number;
   upcomingEventCount: number;
 }
@@ -75,22 +75,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {upcomingEventCount}
               </span>
             </button>
-
-            <button
-              onClick={() => setActiveTab('guide')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'guide'
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-600/30'
-                  : 'text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/50'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Deploy Guide (Vercel/Supabase)</span>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            </button>
           </nav>
 
           {/* Database Connection Indicator */}
@@ -153,19 +137,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Convoy Scheduler</span>
             </div>
             <span className="px-2 py-0.5 rounded-full text-xs bg-cyan-500/20 text-cyan-300">{upcomingEventCount}</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('guide'); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium ${
-              activeTab === 'guide' ? 'bg-cyan-600 text-white' : 'text-emerald-400 hover:bg-slate-800'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              <BookOpen className="w-5 h-5" />
-              <span>Free Deploy Guide</span>
-            </div>
-            <span className="text-xs text-emerald-300">0 PKR</span>
           </button>
         </div>
       )}

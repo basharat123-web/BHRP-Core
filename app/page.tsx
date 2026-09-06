@@ -12,7 +12,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Shield, Users, Calendar, Award, Zap, AlertTriangle, ArrowRight, BookOpen } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'guide'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'events'>('roster');
   
   // Initial Mock State
   const [members, setMembers] = useState<Member[]>([
@@ -311,8 +311,6 @@ export default function Home() {
             onCreateEvent={handleCreateEvent}
           />
         )}
-
-        {activeTab === 'guide' && <DeployGuide />}
       </main>
 
       {/* Footer */}
