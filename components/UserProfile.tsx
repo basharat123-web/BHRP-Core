@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UserProfile } from '@/lib/types';
+import { UserProfile, Organization } from '@/lib/types';
 import { User, Shield, Award, Edit3, Save, LogOut, Check, Crown, Hash, Mail, Clock, MessageSquare, PlusCircle } from 'lucide-react';
 
 interface UserProfileViewProps {
   profile: UserProfile;
+  organizations?: Organization[];
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   onSignOut: () => void;
   onOpenJoinModal?: () => void;
@@ -13,10 +14,12 @@ interface UserProfileViewProps {
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
   profile,
+  organizations = [],
   onUpdateProfile,
   onSignOut,
   onOpenJoinModal,
 }) => {
+  const myOrg = organizations.find((o) => o.id === profile.currentFamilyId);
   const [isEditing, setIsEditing] = useState(false);
   const [ingameId, setIngameId] = useState(profile.ingameId || 'BH-NEW');
   const [discordTag, setDiscordTag] = useState(profile.discordTag || '');
@@ -176,16 +179,26 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               
               <div className="flex items-center justify-between pt-1">
                 <span className="text-slate-500">Family Status</span>
-                {profile.currentFamilyId ? (
+                {profile.accountType === 'Family Leader' ? (
+                  myOrg?.status === 'Approved' ? (
+                    <span className="font-bold text-emerald-400 flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5" /> Approved Family Squad
+                    </span>
+                  ) : (
+                    <span className="font-bold text-amber-400 flex items-center gap-1" title="Requires basharat81253@gmail.com approval">
+                      <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Root Admin Approval
+                    </span>
+                  )
+                ) : profile.currentFamilyId ? (
                   <span className="font-bold text-emerald-400 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Assigned
+                    <Check className="w-3.5 h-3.5" /> Assigned to Family
                   </span>
                 ) : profile.applicationStatus === 'Pending' ? (
                   <span className="font-bold text-amber-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Request
+                    <Clock className="w-3.5 h-3.5 animate-pulse" /> Application Pending Review
                   </span>
                 ) : (
-                  <span className="text-slate-500">No Family</span>
+                  <span className="text-slate-500">No Family Assigned</span>
                 )}
               </div>
 

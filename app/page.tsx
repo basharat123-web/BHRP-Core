@@ -808,6 +808,7 @@ export default function Home() {
         {activeTab === 'profile' && userProfile && (
           <UserProfileView
             profile={userProfile}
+            organizations={organizations}
             onUpdateProfile={async (updates) => {
               const updated = { ...userProfile, ...updates };
               setUserProfile(updated);
