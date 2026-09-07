@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, ChatMessage } from '@/lib/types';
-import { MessageSquare, Mic, MicOff, Send, Radio, Volume2, VolumeX, Shield, Users, Sparkles, Hash } from 'lucide-react';
+import { UserProfile, ChatMessage, Organization, Member } from '@/lib/types';
+import { MessageSquare, Mic, MicOff, Send, Radio, Volume2, VolumeX, Shield, Users, Sparkles, Hash, Crown, UserCheck } from 'lucide-react';
 import { supabase, fetchChatMessages, sendChatMessage } from '@/lib/supabase';
 
 interface LiveSquadChatProps {
   userProfile: UserProfile;
+  organizations?: Organization[];
+  members?: Member[];
 }
 
 export interface VoiceParticipant {
@@ -20,13 +22,18 @@ export interface VoiceParticipant {
   isSpeaking: boolean;
 }
 
-export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => {
+export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organizations = [], members = [] }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [inputText, setInputText] = useState('');
   const [isMicMuted, setIsMicMuted] = useState(true);
   const [isDeafened, setIsDeafened] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Root Admin Direct Chat Target Recipient State
+  const [targetRecipient, setTargetRecipient] = useState<string>('GLOBAL');
+
+  const isRootAdmin = userProfile.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile.isRootAdmin;
 
   // Real-time connected voice channel participants
   const [voiceUsers, setVoiceUsers] = useState<VoiceParticipant[]>([]);
@@ -48,7 +55,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
 
     if (!supabase) return;
 
-    // Realtime postgres changes channel for chat_messages table
     const chatChannel = supabase
       .channel('bhrp-live-chat-room')
       .on(
@@ -87,7 +93,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
   // 2. Real-time Supabase Presence for Voice Channel Users
   useEffect(() => {
     if (!supabase) {
-      // Fallback local voice user list if Supabase client not present
       setVoiceUsers([
         {
           userId: userProfile.id,
@@ -162,7 +167,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
     };
   }, [userProfile.id]);
 
-  // Update presence status whenever mic state changes
   useEffect(() => {
     if (voiceChannelRef.current && supabase) {
       voiceChannelRef.current.track({
@@ -179,24 +183,27 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
     }
   }, [isMicMuted, isDeafened, isSpeaking, userProfile]);
 
-  // Auto scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle Text Message Submit
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const textPayload = inputText.trim();
+    let textPayload = inputText.trim();
+
+    if (isRootAdmin && targetRecipient !== 'GLOBAL') {
+      textPayload = `[DIRECT DISPATCH TO: ${targetRecipient}] ${textPayload}`;
+    }
+
     setInputText('');
 
     const tempMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       userId: userProfile.id,
       senderName: userProfile.fullName,
-      senderRank: userProfile.accountType,
+      senderRank: isRootAdmin ? 'Root Admin' : userProfile.accountType,
       ingameId: userProfile.ingameId,
       avatarUrl: userProfile.avatarUrl,
       text: textPayload,
@@ -205,7 +212,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
 
     setMessages((prev) => [...prev, tempMsg]);
 
-    // Broadcast message instantly to all connected clients
     if (voiceChannelRef.current) {
       voiceChannelRef.current.send({
         type: 'broadcast',
@@ -217,20 +223,18 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
     await sendChatMessage(
       userProfile.id,
       userProfile.fullName,
-      userProfile.accountType,
+      isRootAdmin ? 'Root Admin' : userProfile.accountType,
       userProfile.ingameId,
       userProfile.avatarUrl,
       textPayload
     );
   };
 
-  // 3. WebRTC Microphone Audio Stream & Sound Level Meter
   const toggleMic = async () => {
     const nextMuteState = !isMicMuted;
     setIsMicMuted(nextMuteState);
 
     if (!nextMuteState) {
-      // User is Unmuting Mic -> Request Browser Microphone Permission
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -261,7 +265,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
 
           detectAudioLevel();
         } else {
-          // Simulation fallback if mic not available
           setIsSpeaking(true);
           setTimeout(() => setIsSpeaking(false), 4000);
         }
@@ -271,7 +274,6 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
         setTimeout(() => setIsSpeaking(false), 3000);
       }
     } else {
-      // User is Muting Mic -> Stop Microphone Track
       setIsSpeaking(false);
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -285,54 +287,101 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-slate-100 font-sans">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
       
-      {/* Left Column: Live Text Chat Feed */}
       <div className="lg:col-span-2 bg-[#0b0c10] border-2 border-yellow-500/30 rounded-3xl p-6 flex flex-col justify-between h-[620px] shadow-2xl relative overflow-hidden">
         
-        {/* Chat Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-3">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 rounded-xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-              <MessageSquare className="w-5 h-5" />
+              {isRootAdmin ? <Crown className="w-5 h-5 text-yellow-400 animate-pulse" /> : <MessageSquare className="w-5 h-5" />}
             </div>
             <div>
               <h2 className="text-lg font-black text-white uppercase flex items-center gap-2">
-                <span>Tactical Squad Chat</span>
+                <span>{isRootAdmin ? 'Root Command Direct Dispatch & Live Chat' : 'Tactical Squad Chat'}</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-mono font-bold flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" /> LIVE REALTIME
                 </span>
               </h2>
-              <p className="text-slate-400 text-xs font-mono">Synced live messaging across all logged-in Gmail accounts</p>
+              <p className="text-slate-400 text-xs font-mono">
+                {isRootAdmin
+                  ? 'Authenticated Root Admin Direct Communication Channel'
+                  : 'Synced live messaging across all logged-in Gmail accounts'}
+              </p>
             </div>
           </div>
+
+          {isRootAdmin && (
+            <div className="w-full sm:w-auto flex items-center space-x-2 font-mono">
+              <span className="text-xs text-yellow-400 font-bold uppercase">Direct To:</span>
+              <select
+                value={targetRecipient}
+                onChange={(e) => setTargetRecipient(e.target.value)}
+                className="bg-slate-900 border-2 border-yellow-500/50 text-yellow-300 font-bold rounded-xl px-3 py-1.5 text-xs outline-none focus:border-yellow-400 cursor-pointer shadow-md"
+              >
+                <option value="GLOBAL">📢 All Squads (Global Broadcast)</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={`Leader of ${org.name}`}>
+                    👑 {org.name} Leader
+                  </option>
+                ))}
+                {members.map((m) => (
+                  <option key={m.id} value={m.name}>
+                    👤 {m.name} [{m.ingameId}]
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* Messages Feed Area */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 font-mono text-xs">
           {messages.map((msg) => {
             const isMe = msg.userId === userProfile.id;
+            const isRootMsg =
+              msg.senderRank === 'Root Admin' ||
+              msg.senderName?.toLowerCase().includes('basharat') ||
+              msg.senderName?.toLowerCase().includes('root');
+
             return (
               <div
                 key={msg.id}
                 className={`flex items-start space-x-3 ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`}
               >
-                <img
-                  src={msg.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
-                  alt={msg.senderName}
-                  className="w-8 h-8 rounded-full border border-yellow-500/40 object-cover flex-shrink-0"
-                />
-                <div className={`max-w-[75%] space-y-1 ${isMe ? 'items-end text-right' : ''}`}>
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={msg.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
+                    alt={msg.senderName}
+                    className={`w-9 h-9 rounded-full object-cover border-2 ${
+                      isRootMsg ? 'border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 'border-yellow-500/40'
+                    }`}
+                  />
+                  {isRootMsg && (
+                    <Crown className="w-4 h-4 text-yellow-400 absolute -top-2 -right-1 animate-bounce" />
+                  )}
+                </div>
+
+                <div className={`max-w-[80%] space-y-1 ${isMe ? 'items-end text-right' : ''}`}>
                   <div className="flex items-center space-x-2">
-                    <span className="font-bold text-white text-xs">{msg.senderName}</span>
+                    {isRootMsg ? (
+                      <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-400 text-yellow-300 font-mono font-black text-[10px]">
+                        <Crown className="w-3 h-3 text-yellow-400" />
+                        <span>SUPREME ROOT ADMIN</span>
+                      </span>
+                    ) : (
+                      <span className="font-bold text-white text-xs">{msg.senderName}</span>
+                    )}
+
                     <span className="px-1.5 py-0.2 rounded text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
-                      [{msg.ingameId || 'BH-MEMBER'}]
+                      [{msg.ingameId || (isRootMsg ? 'ROOT-01' : 'BH-MEMBER')}]
                     </span>
                     <span className="text-[10px] text-slate-500">{msg.createdAt}</span>
                   </div>
                   <div
-                    className={`p-3 rounded-2xl text-xs leading-relaxed font-sans ${
-                      isMe
+                    className={`p-3.5 rounded-2xl text-xs leading-relaxed font-sans ${
+                      isRootMsg
+                        ? 'bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-slate-900 border-2 border-yellow-400 text-yellow-100 font-bold shadow-[0_0_25px_rgba(250,204,21,0.25)]'
+                        : isMe
                         ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-semibold shadow-md shadow-yellow-500/20'
                         : 'bg-slate-900 border border-slate-800 text-slate-200'
                     }`}
@@ -346,13 +395,16 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => 
           <div ref={chatEndRef} />
         </div>
 
-        {/* Send Input Bar */}
         <form onSubmit={handleSendMessage} className="mt-4 pt-3 border-t border-slate-800 flex items-center space-x-2">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type tactical message or convoy alert..."
+            placeholder={
+              isRootAdmin
+                ? `Type direct command/message to ${targetRecipient === 'GLOBAL' ? 'All Squads' : targetRecipient}...`
+                : 'Type tactical message or convoy alert...'
+            }
             className="flex-1 px-4 py-3 bg-slate-900 border border-slate-700 rounded-2xl text-white text-xs font-mono focus:border-yellow-400 outline-none"
           />
           <button

@@ -69,37 +69,43 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-1.5 bg-[#12141c] p-1.5 rounded-2xl border border-yellow-500/20">
-            <button
-              onClick={() => setActiveTab('roster')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'roster'
-                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Family Roster</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-200 font-mono font-bold">
-                {memberCount}
-              </span>
-            </button>
+            {/* Show standard squad tabs ONLY for non-Root Admin users */}
+            {!isRootAdmin && (
+              <>
+                <button
+                  onClick={() => setActiveTab('roster')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'roster'
+                      ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Family Roster</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-200 font-mono font-bold">
+                    {memberCount}
+                  </span>
+                </button>
 
-            <button
-              onClick={() => setActiveTab('events')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'events'
-                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              <span>Convoy Patrols</span>
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-yellow-500/20 text-yellow-400 font-mono font-bold">
-                {upcomingEventCount}
-              </span>
-            </button>
+                <button
+                  onClick={() => setActiveTab('events')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'events'
+                      ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Convoy Patrols</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-yellow-500/20 text-yellow-400 font-mono font-bold">
+                    {upcomingEventCount}
+                  </span>
+                </button>
+              </>
+            )}
 
-            {userProfile && canAccessComms && (
+            {/* Tactical Comms for regular members */}
+            {userProfile && canAccessComms && !isRootAdmin && (
               <button
                 onClick={() => setActiveTab('chat')}
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -113,7 +119,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {isLeader && (
+            {/* Applications tab for Family Leaders (not Root Admin) */}
+            {userProfile?.accountType === 'Family Leader' && !isRootAdmin && (
               <button
                 onClick={() => setActiveTab('applications')}
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -132,18 +139,33 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
+            {/* Unique Root Admin Navigation Tabs */}
             {isRootAdmin && (
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'admin'
-                    ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/40'
-                    : 'text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
-                }`}
-              >
-                <Crown className="w-4 h-4 animate-bounce" />
-                <span>ROOT ADMIN</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'admin'
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/40'
+                      : 'text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
+                  }`}
+                >
+                  <Crown className="w-4 h-4 animate-bounce text-yellow-400" />
+                  <span>ROOT ADMIN CONSOLE</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'chat'
+                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/40'
+                      : 'text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
+                  }`}
+                >
+                  <Radio className="w-4 h-4 text-yellow-400 animate-pulse" />
+                  <span>ROOT COMMAND DIRECT CHAT</span>
+                </button>
+              </>
             )}
 
             {userProfile && (
@@ -227,33 +249,37 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-slate-800 bg-[#0b0c10] px-4 pt-3 pb-5 space-y-2 font-mono">
-          <button
-            onClick={() => { setActiveTab('roster'); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-              activeTab === 'roster' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              <Users className="w-4 h-4" />
-              <span>Family Roster</span>
-            </div>
-            <span className="px-2 py-0.5 rounded-full text-xs bg-slate-900 text-slate-200">{memberCount}</span>
-          </button>
+          {!isRootAdmin && (
+            <>
+              <button
+                onClick={() => { setActiveTab('roster'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
+                  activeTab === 'roster' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <Users className="w-4 h-4" />
+                  <span>Family Roster</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-900 text-slate-200">{memberCount}</span>
+              </button>
 
-          <button
-            onClick={() => { setActiveTab('events'); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-              activeTab === 'events' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              <Calendar className="w-4 h-4" />
-              <span>Convoy Patrols</span>
-            </div>
-            <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{upcomingEventCount}</span>
-          </button>
+              <button
+                onClick={() => { setActiveTab('events'); setMobileMenuOpen(false); }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
+                  activeTab === 'events' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-4 h-4" />
+                  <span>Convoy Patrols</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{upcomingEventCount}</span>
+              </button>
+            </>
+          )}
 
-          {userProfile && canAccessComms && (
+          {userProfile && canAccessComms && !isRootAdmin && (
             <button
               onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
@@ -267,7 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {isLeader && (
+          {userProfile?.accountType === 'Family Leader' && !isRootAdmin && (
             <button
               onClick={() => { setActiveTab('applications'); setMobileMenuOpen(false); }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
@@ -285,15 +311,27 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {isRootAdmin && (
-            <button
-              onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950"
-            >
-              <div className="flex items-center space-x-3">
-                <Crown className="w-4 h-4" />
-                <span>ROOT ADMIN PANEL</span>
-              </div>
-            </button>
+            <>
+              <button
+                onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950"
+              >
+                <div className="flex items-center space-x-3">
+                  <Crown className="w-4 h-4" />
+                  <span>ROOT ADMIN PANEL</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold bg-yellow-500/20 border border-yellow-500/40 text-yellow-400"
+              >
+                <div className="flex items-center space-x-3">
+                  <Radio className="w-4 h-4 text-yellow-400" />
+                  <span>ROOT COMMAND DIRECT CHAT</span>
+                </div>
+              </button>
+            </>
           )}
 
           {userProfile ? (

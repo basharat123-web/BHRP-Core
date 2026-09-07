@@ -777,7 +777,7 @@ export default function Home() {
 
         {activeTab === 'chat' && userProfile && (
           isRootAdmin || userProfile.accountType === 'Family Leader' || Boolean(userProfile.currentFamilyId) ? (
-            <LiveSquadChat userProfile={userProfile} />
+            <LiveSquadChat userProfile={userProfile} organizations={organizations} members={members} />
           ) : (
             <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
               <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
