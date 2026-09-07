@@ -557,16 +557,43 @@ export default function Home() {
           if (prev.some((o) => o.id === newOrg.id)) return prev;
           return [newOrg, ...prev];
         });
-      }
 
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        try {
-          const bc = new BroadcastChannel('bhrp_global_sync');
-          if (newOrg) {
-            bc.postMessage({ type: 'ORG_CREATED', org: newOrg });
+        // Insert Leader into members table so they show up in their Roster
+        if (supabase) {
+          const { data: memData } = await supabase.from('members').insert([{
+            org_id: newOrg.id,
+            name: userProfile.fullName,
+            discord_tag: userProfile.discordTag,
+            ingame_id: userProfile.ingameId,
+            rank: 'Leader',
+            status: 'Active',
+            strikes: 0,
+            xp: 100,
+          }]).select().single();
+          
+          if (memData) {
+            setMembers(prev => [...prev, {
+              id: memData.id,
+              name: memData.name,
+              discordTag: memData.discord_tag,
+              ingameId: memData.ingame_id,
+              rank: 'Leader',
+              status: 'Active',
+              strikes: 0,
+              xp: 100,
+              joinedDate: new Date().toISOString().split('T')[0],
+              orgId: newOrg.id
+            }]);
           }
-          bc.close();
-        } catch (e) {}
+        }
+
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          try {
+            const bc = new BroadcastChannel('bhrp_global_sync');
+            bc.postMessage({ type: 'ORG_CREATED', org: newOrg });
+            bc.close();
+          } catch (e) {}
+        }
       }
     }
 
@@ -713,6 +740,7 @@ export default function Home() {
         strikes: 0,
         xp: 100,
         joinedDate: new Date().toISOString().split('T')[0],
+        orgId: familyId,
       };
       setMembers((prev) => [...prev, newMem]);
     }
@@ -1045,7 +1073,7 @@ export default function Home() {
 
         {activeTab === 'applications' && (
           <FamilyApplicationsView
-            applications={applications}
+            applications={isRootAdmin ? applications : applications.filter((a) => a.familyId === userProfile?.currentFamilyId)}
             onRespond={handleRespondApplication}
           />
         )}
