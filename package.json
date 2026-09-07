@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@jitsi/rnnoise-wasm": "^0.2.1",
     "@supabase/supabase-js": "^2.48.1",
     "@types/simple-peer": "^9.11.9",
     "clsx": "^2.1.1",

@@ -88,78 +88,52 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   }, []);
 
   /**
-   * Build a Discord-style noise-cancelled audio stream using Web Audio API.
-   * Pipeline: Mic → High-Pass Filter → Dynamics Compressor → Noise Gate → Output
+   * Discord-style ML noise cancellation using RNNoise (Mozilla/Xiph model via Jitsi WASM).
+   * Routes mic audio through an AudioWorklet running the actual RNNoise neural network.
+   * Falls back to browser-native noise suppression if the worklet fails.
    */
-  const buildProcessedStream = (rawStream: MediaStream): MediaStream => {
+  const buildProcessedStream = async (rawStream: MediaStream): Promise<MediaStream> => {
     const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtor) return rawStream; // fallback: no Web Audio support
+    if (!AudioCtor) return rawStream;
 
     const ctx = new AudioCtor({ sampleRate: 48000 }) as AudioContext;
     audioContextRef.current = ctx;
 
-    const source = ctx.createMediaStreamSource(rawStream);
+    try {
+      // Load the RNNoise AudioWorklet (served from /public)
+      await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
 
-    // 1. High-Pass Filter — removes low-frequency rumble, AC hum, keyboard thuds
-    const highPass = ctx.createBiquadFilter();
-    highPass.type = 'highpass';
-    highPass.frequency.value = 85; // Cut everything below 85Hz
-    highPass.Q.value = 0.7;
+      const source = ctx.createMediaStreamSource(rawStream);
+      const rnnoiseNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
 
-    // 2. Low-pass filter — removes harsh high-frequency hiss
-    const lowPass = ctx.createBiquadFilter();
-    lowPass.type = 'lowpass';
-    lowPass.frequency.value = 8000; // Keep voice range, cut above 8kHz
-    lowPass.Q.value = 0.7;
+      // Gentle dynamics compressor after RNNoise for volume normalization
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -30;
+      compressor.knee.value = 12;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.005;
+      compressor.release.value = 0.3;
 
-    // 3. Dynamics Compressor — normalizes volume like Discord's AGC
-    const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -35; // Start compressing at -35dB
-    compressor.knee.value = 10;
-    compressor.ratio.value = 6;     // 6:1 compression ratio
-    compressor.attack.value = 0.003;
-    compressor.release.value = 0.25;
+      const destination = ctx.createMediaStreamDestination();
 
-    // 4. Noise Gate (Gain Node) — silence anything below voice threshold
-    const noiseGate = ctx.createGain();
-    noiseGate.gain.value = 1.0;
-    noiseGateGainRef.current = noiseGate;
+      // Chain: Mic → RNNoise ML → Compressor → Output
+      source.connect(rnnoiseNode);
+      rnnoiseNode.connect(compressor);
+      compressor.connect(destination);
 
-    // 5. Analyser for gate detection
-    const gateAnalyser = ctx.createAnalyser();
-    gateAnalyser.fftSize = 256;
+      console.log('[BHRP] RNNoise ML noise cancellation active ✓');
+      return destination.stream;
 
-    // Build the chain
-    source.connect(highPass);
-    highPass.connect(lowPass);
-    lowPass.connect(compressor);
-    compressor.connect(gateAnalyser);
-    gateAnalyser.connect(noiseGate);
+    } catch (err) {
+      // Fallback: if AudioWorklet fails, use a simpler Web Audio chain
+      console.warn('[BHRP] RNNoise worklet failed, using native NC fallback:', err);
+      ctx.close();
 
-    // Destination: processed stream to send via WebRTC
-    const destination = ctx.createMediaStreamDestination();
-    noiseGate.connect(destination);
-
-    // Noise gate logic: open/close based on volume level
-    const gateData = new Uint8Array(gateAnalyser.fftSize);
-    const GATE_THRESHOLD = 15; // 0–255 scale; tune for sensitivity
-    let gateOpen = false;
-
-    if (noiseGateIntervalRef.current) window.clearInterval(noiseGateIntervalRef.current);
-    noiseGateIntervalRef.current = window.setInterval(() => {
-      if (!noiseGateGainRef.current) return;
-      gateAnalyser.getByteFrequencyData(gateData);
-      const avg = gateData.reduce((s, v) => s + v, 0) / gateData.length;
-      const shouldOpen = avg > GATE_THRESHOLD;
-      if (shouldOpen !== gateOpen) {
-        gateOpen = shouldOpen;
-        // Smooth transition to avoid clicks
-        noiseGateGainRef.current.gain.setTargetAtTime(gateOpen ? 1.0 : 0.0, ctx.currentTime, 0.015);
-      }
-    }, 30);
-
-    return destination.stream;
+      // Just rely on browser's native noiseSuppression (already enabled in getUserMedia)
+      return rawStream;
+    }
   };
+
 
   const stopLocalStream = () => {
     localStreamRef.current?.getTracks().forEach(track => track.stop());
@@ -359,8 +333,8 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       });
       localStreamRef.current = rawStream;
 
-      // Build the Web Audio API noise-cancellation pipeline on top
-      const streamToSend = isNoiseCancellationOn ? buildProcessedStream(rawStream) : rawStream;
+      // Build the RNNoise ML noise-cancellation pipeline (async — loads WASM worklet)
+      const streamToSend = isNoiseCancellationOn ? await buildProcessedStream(rawStream) : rawStream;
       processedStreamRef.current = streamToSend;
 
       monitorMicInput();
