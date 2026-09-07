@@ -326,31 +326,10 @@ export const submitFamilyApplication = async (
   discordTag: string,
   ingameId: string,
   message?: string
-): Promise<boolean> => {
-  const fallbackApp: FamilyApplication = {
-    id: `app-${Date.now()}`,
-    userId,
-    familyId,
-    applicantName,
-    applicantEmail,
-    discordTag,
-    ingameId,
-    message: message || 'Requesting to join family',
-    status: 'Pending',
-    createdAt: new Date().toISOString(),
-  };
-
-  // Always save locally first so Family Leaders & Root Admin see application even on fallback
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('bhrp_pending_apps');
-    let existing: FamilyApplication[] = raw ? JSON.parse(raw) : [];
-    existing = [fallbackApp, ...existing];
-    localStorage.setItem('bhrp_pending_apps', JSON.stringify(existing));
-  }
-
-  if (!supabase) return true;
+): Promise<string | null> => {
+  if (!supabase) return null;
   try {
-    const { error: appError } = await supabase.from('family_applications').insert([
+    const { data, error: appError } = await supabase.from('family_applications').insert([
       {
         user_id: userId,
         family_id: familyId,
@@ -361,48 +340,36 @@ export const submitFamilyApplication = async (
         message: message || 'Requesting to join family',
         status: 'Pending',
       },
-    ]);
+    ]).select('id').single();
 
-    if (appError) return true;
+    if (appError || !data) {
+      console.error("Error inserting app:", appError);
+      return null;
+    }
 
     await supabase.from('profiles').update({
       applied_family_id: familyId,
       application_status: 'Pending',
     }).eq('id', userId);
 
-    return true;
+    return data.id; // Return real UUID
   } catch (err) {
     console.error('Error submitting application:', err);
-    return true;
+    return null;
   }
 };
 
 export const fetchFamilyApplications = async (familyId?: string): Promise<FamilyApplication[]> => {
-  let localApps: FamilyApplication[] = [];
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('bhrp_pending_apps');
-    if (raw) {
-      try {
-        localApps = JSON.parse(raw);
-      } catch (e) {}
-    }
-  }
-
-  if (familyId) {
-    localApps = localApps.filter((a) => a.familyId === familyId);
-  }
-
-  if (!supabase) return localApps;
-
+  if (!supabase) return [];
   try {
     let query = supabase.from('family_applications').select('*, organizations(name)');
     if (familyId) {
       query = query.eq('family_id', familyId);
     }
     const { data, error } = await query;
-    if (error || !data) return localApps;
+    if (error || !data) return [];
 
-    const dbApps: FamilyApplication[] = data.map((app: any) => ({
+    return data.map((app: any) => ({
       id: app.id,
       userId: app.user_id,
       familyId: app.family_id,
@@ -415,18 +382,8 @@ export const fetchFamilyApplications = async (familyId?: string): Promise<Family
       status: app.status as ApplicationStatus,
       createdAt: app.created_at,
     }));
-
-    const map = new Map<string, FamilyApplication>();
-    dbApps.forEach((a) => map.set(a.id, a));
-    localApps.forEach((a) => {
-      if (!map.has(a.id)) {
-        map.set(a.id, a);
-      }
-    });
-
-    return Array.from(map.values());
   } catch (err) {
-    return localApps;
+    return [];
   }
 };
 
@@ -439,29 +396,25 @@ export const respondToApplication = async (
   discordTag: string,
   ingameId: string
 ): Promise<boolean> => {
-  if (typeof window !== 'undefined') {
-    const raw = localStorage.getItem('bhrp_pending_apps');
-    if (raw) {
-      try {
-        let existing: FamilyApplication[] = JSON.parse(raw);
-        existing = existing.map((a) => (a.id === applicationId ? { ...a, status } : a));
-        localStorage.setItem('bhrp_pending_apps', JSON.stringify(existing));
-      } catch (e) {}
-    }
-  }
 
   if (!supabase) return true;
   try {
-    await supabase.from('family_applications').update({ status }).eq('id', applicationId);
+    const { error: appErr } = await supabase.from('family_applications').update({ status }).eq('id', applicationId);
+    if (appErr) console.error("Error updating family_applications:", appErr);
 
     if (status === 'Approved') {
-      await supabase.from('profiles').update({
+      // 1. Update the member's profile
+      const { error: profErr } = await supabase.from('profiles').update({
         current_family_id: familyId,
         application_status: 'Approved',
         applied_family_id: null,
+        account_type: 'Member' // MUST upgrade them to Member so UI unlocks
       }).eq('id', userId);
+      
+      if (profErr) console.error("Error updating profile for approval:", profErr);
 
-      await supabase.from('members').insert([
+      // 2. Add them to the family roster
+      const { error: memErr } = await supabase.from('members').insert([
         {
           org_id: familyId,
           name: applicantName,
@@ -473,10 +426,13 @@ export const respondToApplication = async (
           xp: 100,
         },
       ]);
+      if (memErr) console.error("Error inserting member:", memErr);
+      
     } else {
-      await supabase.from('profiles').update({
+      const { error: profErr } = await supabase.from('profiles').update({
         application_status: 'Rejected',
       }).eq('id', userId);
+      if (profErr) console.error("Error updating profile for rejection:", profErr);
     }
 
     return true;

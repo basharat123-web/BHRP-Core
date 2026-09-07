@@ -600,8 +600,24 @@ export default function Home() {
   const handleSubmitApplication = async (familyId: string, message: string) => {
     if (!userProfile) return;
 
+    const realAppId = await submitFamilyApplication(
+      userProfile.id,
+      familyId,
+      userProfile.fullName,
+      userProfile.email,
+      userProfile.discordTag,
+      userProfile.ingameId,
+      message
+    );
+
+    // If it failed to submit to DB, abort so they can try again.
+    if (!realAppId) {
+      alert("Failed to submit application. Please check your connection.");
+      return;
+    }
+
     const newApp: FamilyApplication = {
-      id: `app-${Date.now()}`,
+      id: realAppId,
       userId: userProfile.id,
       familyId,
       familyName: organizations.find((o) => o.id === familyId)?.name || 'RP Family',
@@ -634,16 +650,6 @@ export default function Home() {
         bc.close();
       } catch (e) {}
     }
-
-    await submitFamilyApplication(
-      userProfile.id,
-      familyId,
-      userProfile.fullName,
-      userProfile.email,
-      userProfile.discordTag,
-      userProfile.ingameId,
-      message
-    );
   };
 
   const handleRespondApplication = async (
