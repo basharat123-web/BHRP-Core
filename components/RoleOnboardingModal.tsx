@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AccountType } from '@/lib/types';
-import { User, Shield, Crown, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { User, Shield, Crown, ArrowRight, CheckCircle2, Sparkles, Clock } from 'lucide-react';
 
 interface RoleOnboardingModalProps {
   onSelectRole: (role: AccountType, familyName?: string, familyTag?: string) => Promise<void>;
@@ -37,12 +37,12 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({ onSele
             Select Your <span className="text-yellow-400">Account Type</span>
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm">
-            Choose how you want to participate in the Black Hawk RolePlay ecosystem.
+            Select how you want to participate. This choice is saved permanently for your account.
           </p>
         </div>
 
         {/* Role Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-10 font-sans">
           
           {/* Card 1: Member Account */}
           <div
@@ -91,12 +91,12 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({ onSele
                   {selectedRole === 'Family Leader' && <CheckCircle2 className="w-5 h-5 text-yellow-400" />}
                 </h3>
                 <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                  Create and command your own official RP Family & Convoy Squad. Manage member applications and squad ranks.
+                  Create and command your own official RP Family & Convoy Squad.
                 </p>
               </div>
             </div>
-            <div className="text-[11px] font-mono text-amber-400/90 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
-              ✓ Create & Lead New Squad
+            <div className="text-[11px] font-mono text-amber-400/90 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-amber-400" /> Root Admin Approval Required
             </div>
           </div>
 
@@ -105,10 +105,10 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({ onSele
         {/* Input fields if Family Leader selected */}
         {selectedRole === 'Family Leader' && (
           <div className="p-4 rounded-2xl bg-[#12141c] border border-yellow-500/30 space-y-3 animate-fadeIn relative z-10">
-            <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider">Family Details</h4>
+            <h4 className="text-xs font-bold text-yellow-400 uppercase tracking-wider font-mono">Create Your Family Squad</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Family / Squad Name</label>
+                <label className="block text-[11px] font-semibold text-slate-400 mb-1">Family Name</label>
                 <input
                   type="text"
                   value={familyName}
@@ -138,7 +138,7 @@ export const RoleOnboardingModal: React.FC<RoleOnboardingModalProps> = ({ onSele
             disabled={!selectedRole || (selectedRole === 'Family Leader' && !familyName) || submitting}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 disabled:opacity-50 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center space-x-2 shadow-xl shadow-yellow-500/20 transition-all cursor-pointer"
           >
-            <span>{submitting ? 'Setting up Profile...' : 'Confirm Account Setup'}</span>
+            <span>{submitting ? 'Setting up Profile...' : 'Confirm & Save Selection'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

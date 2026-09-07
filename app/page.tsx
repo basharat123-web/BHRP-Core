@@ -13,6 +13,7 @@ import { RoleOnboardingModal } from '@/components/RoleOnboardingModal';
 import { FamilyJoinModal } from '@/components/FamilyJoinModal';
 import { FamilyApplicationsView } from '@/components/FamilyApplicationsView';
 import { GoogleSignInModal } from '@/components/GoogleSignInModal';
+import { LiveSquadChat } from '@/components/LiveSquadChat';
 import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType } from '@/lib/types';
 import {
   supabase,
@@ -22,6 +23,7 @@ import {
   updateUserProfile,
   fetchOrganizations,
   createOrganization,
+  respondToOrganization,
   submitFamilyApplication,
   fetchFamilyApplications,
   respondToApplication,
@@ -29,7 +31,7 @@ import {
 import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile' | 'admin' | 'applications'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile' | 'admin' | 'applications' | 'chat'>('roster');
   
   // Auth & Profile State
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -52,6 +54,7 @@ export default function Home() {
       tag: 'BHRP',
       logoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
       description: 'Official Elite RolePlay & Convoy Patrol Squad',
+      status: 'Approved',
     },
   ]);
 
@@ -92,17 +95,6 @@ export default function Home() {
       xp: 850,
       joinedDate: '2024-03-10',
     },
-    {
-      id: 'm-4',
-      name: 'Zain Malik',
-      discordTag: 'zain#5544',
-      ingameId: 'BH-112',
-      rank: 'Member',
-      status: 'Active',
-      strikes: 0,
-      xp: 420,
-      joinedDate: '2024-04-18',
-    },
   ]);
 
   const [events, setEvents] = useState<ConvoyEvent[]>([
@@ -141,7 +133,6 @@ export default function Home() {
 
   // 1. Supabase Auth & Local Storage Session Listener
   useEffect(() => {
-    // Check localStorage cache first for zero-flicker instant load
     const cachedProfile = typeof window !== 'undefined' ? localStorage.getItem('bhrp_active_profile') : null;
     if (cachedProfile) {
       try {
@@ -332,6 +323,15 @@ export default function Home() {
       if (newOrg) {
         createdOrgId = newOrg.id;
         setOrganizations((prev) => [...prev, newOrg]);
+      } else {
+        const fallbackOrg: Organization = {
+          id: `org-${Date.now()}`,
+          name: familyName,
+          tag: familyTag,
+          status: 'Pending Approval',
+        };
+        createdOrgId = fallbackOrg.id;
+        setOrganizations((prev) => [...prev, fallbackOrg]);
       }
     }
 
@@ -351,6 +351,15 @@ export default function Home() {
         accountType: role,
         currentFamilyId: createdOrgId,
       });
+    }
+  };
+
+  const handleRespondOrganization = async (orgId: string, status: 'Approved' | 'Rejected') => {
+    setOrganizations((prev) =>
+      prev.map((o) => (o.id === orgId ? { ...o, status } : o))
+    );
+    if (supabase) {
+      await respondToOrganization(orgId, status);
     }
   };
 
@@ -448,6 +457,7 @@ export default function Home() {
         name,
         tag,
         description,
+        status: 'Approved',
       };
       setOrganizations((prev) => [...prev, fallbackOrg]);
     }
@@ -565,12 +575,12 @@ export default function Home() {
   }
 
   const isRootAdmin = userProfile?.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile?.isRootAdmin;
-  const needsRoleOnboarding = userProfile && !isRootAdmin && userProfile.accountType === 'Unassigned';
+  const needsRoleOnboarding = userProfile && !isRootAdmin && (userProfile.accountType === 'Unassigned' || !userProfile.accountType);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
       
-      {/* Role Selection Onboarding Modal (Only for non-Root Admin users) */}
+      {/* Role Selection Onboarding Modal (Only for non-Root Admin users who have Unassigned accountType) */}
       {needsRoleOnboarding && (
         <RoleOnboardingModal onSelectRole={handleSelectRole} />
       )}
@@ -659,6 +669,10 @@ export default function Home() {
           />
         )}
 
+        {activeTab === 'chat' && userProfile && (
+          <LiveSquadChat userProfile={userProfile} />
+        )}
+
         {activeTab === 'applications' && (
           <FamilyApplicationsView
             applications={applications}
@@ -674,6 +688,7 @@ export default function Home() {
             organizations={organizations}
             applications={applications}
             onCreateOrganization={handleCreateOrganization}
+            onRespondOrganization={handleRespondOrganization}
             onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}
           />
@@ -693,7 +708,7 @@ export default function Home() {
               }
             }}
             onSignOut={handleSignOut}
-            onOpenJoinModal={() => setShowJoinModal(false)}
+            onOpenJoinModal={() => setShowJoinModal(true)}
           />
         )}
       </main>

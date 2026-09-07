@@ -5,6 +5,7 @@ export type EventStatus = 'Upcoming' | 'Live' | 'Completed' | 'Cancelled';
 
 export type AccountType = 'Unassigned' | 'Member' | 'Family Leader' | 'Root Admin';
 export type ApplicationStatus = 'None' | 'Pending' | 'Approved' | 'Rejected';
+export type OrganizationStatus = 'Pending Approval' | 'Approved' | 'Rejected';
 
 export interface Organization {
   id: string;
@@ -12,6 +13,7 @@ export interface Organization {
   tag: string;
   logoUrl?: string;
   description?: string;
+  status: OrganizationStatus;
   createdAt?: string;
 }
 
@@ -76,6 +78,17 @@ export interface FamilyApplication {
   ingameId: string;
   message?: string;
   status: ApplicationStatus;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  senderName: string;
+  senderRank: string;
+  ingameId: string;
+  avatarUrl?: string;
+  text: string;
   createdAt: string;
 }
 

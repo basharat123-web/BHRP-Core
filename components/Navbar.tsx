@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, PlusCircle, Sparkles } from 'lucide-react';
+import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, PlusCircle, Sparkles, MessageSquare, Radio } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { LiveViewersBadge } from '@/components/LiveViewersBadge';
 import { UserProfile } from '@/lib/types';
 
 interface NavbarProps {
-  activeTab: 'roster' | 'events' | 'profile' | 'admin' | 'applications';
-  setActiveTab: (tab: 'roster' | 'events' | 'profile' | 'admin' | 'applications') => void;
+  activeTab: 'roster' | 'events' | 'profile' | 'admin' | 'applications' | 'chat';
+  setActiveTab: (tab: 'roster' | 'events' | 'profile' | 'admin' | 'applications' | 'chat') => void;
   memberCount: number;
   upcomingEventCount: number;
   viewerCount: number;
@@ -97,6 +97,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {upcomingEventCount}
               </span>
             </button>
+
+            {userProfile && (
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'chat'
+                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <Radio className="w-4 h-4 text-yellow-400 animate-pulse" />
+                <span>Tactical Comms</span>
+              </button>
+            )}
 
             {isLeader && (
               <button
@@ -237,6 +251,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{upcomingEventCount}</span>
           </button>
+
+          {userProfile && (
+            <button
+              onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
+                activeTab === 'chat' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Radio className="w-4 h-4 text-yellow-400" />
+                <span>Tactical Comms (Chat & Voice)</span>
+              </div>
+            </button>
+          )}
 
           {isLeader && (
             <button

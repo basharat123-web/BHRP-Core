@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, FamilyApplication, Organization, AccountType, ApplicationStatus } from './types';
+import { UserProfile, FamilyApplication, Organization, AccountType, ApplicationStatus, OrganizationStatus, ChatMessage } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -104,6 +104,7 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
       tag: org.tag,
       logoUrl: org.logo_url,
       description: org.description,
+      status: (org.status as OrganizationStatus) || 'Approved',
       createdAt: org.created_at,
     }));
   } catch (err) {
@@ -116,7 +117,15 @@ export const createOrganization = async (name: string, tag: string, description?
   try {
     const { data, error } = await supabase
       .from('organizations')
-      .insert([{ name, tag, description, logo_url: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80' }])
+      .insert([
+        {
+          name,
+          tag,
+          description,
+          logo_url: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
+          status: 'Pending Approval',
+        },
+      ])
       .select()
       .single();
 
@@ -127,10 +136,21 @@ export const createOrganization = async (name: string, tag: string, description?
       tag: data.tag,
       logoUrl: data.logo_url,
       description: data.description,
+      status: 'Pending Approval',
       createdAt: data.created_at,
     };
   } catch (err) {
     return null;
+  }
+};
+
+export const respondToOrganization = async (orgId: string, status: 'Approved' | 'Rejected'): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('organizations').update({ status }).eq('id', orgId);
+    return !error;
+  } catch (err) {
+    return false;
   }
 };
 
@@ -146,7 +166,6 @@ export const submitFamilyApplication = async (
 ): Promise<boolean> => {
   if (!supabase) return false;
   try {
-    // 1. Create application row
     const { error: appError } = await supabase.from('family_applications').insert([
       {
         user_id: userId,
@@ -162,7 +181,6 @@ export const submitFamilyApplication = async (
 
     if (appError) return false;
 
-    // 2. Update user profile state
     await supabase.from('profiles').update({
       applied_family_id: familyId,
       application_status: 'Pending',
@@ -214,18 +232,15 @@ export const respondToApplication = async (
 ): Promise<boolean> => {
   if (!supabase) return false;
   try {
-    // Update application status
     await supabase.from('family_applications').update({ status }).eq('id', applicationId);
 
     if (status === 'Approved') {
-      // Set user profile family
       await supabase.from('profiles').update({
         current_family_id: familyId,
         application_status: 'Approved',
         applied_family_id: null,
       }).eq('id', userId);
 
-      // Add to members table if not present
       await supabase.from('members').insert([
         {
           org_id: familyId,
@@ -248,5 +263,72 @@ export const respondToApplication = async (
   } catch (err) {
     console.error('Error responding to application:', err);
     return false;
+  }
+};
+
+// Live Squad Chat & Voice
+export const fetchChatMessages = async (): Promise<ChatMessage[]> => {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    if (error || !data) return [];
+    return data.map((msg: any) => ({
+      id: msg.id,
+      userId: msg.user_id,
+      senderName: msg.sender_name,
+      senderRank: msg.sender_rank,
+      ingameId: msg.ingame_id,
+      avatarUrl: msg.avatar_url,
+      text: msg.text,
+      createdAt: msg.created_at,
+    }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const sendChatMessage = async (
+  userId: string,
+  senderName: string,
+  senderRank: string,
+  ingameId: string,
+  avatarUrl: string,
+  text: string
+): Promise<ChatMessage | null> => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .insert([
+        {
+          user_id: userId,
+          sender_name: senderName,
+          sender_rank: senderRank,
+          ingame_id: ingameId,
+          avatar_url: avatarUrl,
+          text,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      userId: data.user_id,
+      senderName: data.sender_name,
+      senderRank: data.sender_rank,
+      ingameId: data.ingame_id,
+      avatarUrl: data.avatar_url,
+      text: data.text,
+      createdAt: data.created_at,
+    };
+  } catch (err) {
+    return null;
   }
 };

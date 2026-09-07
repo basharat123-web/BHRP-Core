@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     tag TEXT NOT NULL,
     logo_url TEXT,
     description TEXT DEFAULT 'Official Gaming Family & RolePlay Squad',
+    status TEXT DEFAULT 'Pending Approval', -- 'Pending Approval', 'Approved', 'Rejected'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -85,6 +86,18 @@ CREATE TABLE IF NOT EXISTS public.family_applications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 8. Live Squad Chat Messages Table
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    sender_name TEXT NOT NULL,
+    sender_rank TEXT DEFAULT 'Member',
+    ingame_id TEXT DEFAULT 'BH-MEMBER',
+    avatar_url TEXT,
+    text TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Automatic Profile Creation Trigger on Auth Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -121,22 +134,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Seed Initial Data for BHRP Core
-INSERT INTO public.organizations (name, tag, logo_url, description)
-VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80', 'Elite GTA V RolePlay & Heavy Cargo Convoy Squad')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO public.members (name, discord_tag, ingame_id, rank, status, strikes, xp, joined_date)
-VALUES 
-('Rafay King', 'rafay#0001', 'BH-101', 'Leader', 'Active', 0, 1450, '2024-01-15'),
-('Imran Khan', 'imran#1234', 'BH-102', 'High Command', 'Active', 0, 1200, '2024-02-01'),
-('Daniyal Shah', 'daniyal#9999', 'BH-105', 'Officer', 'Active', 1, 850, '2024-03-10'),
-('Zain Malik', 'zain#5544', 'BH-112', 'Member', 'Active', 0, 420, '2024-04-18'),
-('Hamza Ali', 'hamza#8811', 'BH-120', 'Recruit', 'On Leave', 2, 180, '2024-05-02')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO public.events (title, game, event_date, route_details, image_url, status)
-VALUES 
-('Mega City Patrol & Cargo Convoy', 'GTA V RP', NOW() + INTERVAL '2 days', 'Paleto Bay to Los Santos Port via Highway 68', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80', 'Upcoming'),
-('Euro Truck Simulator 2 Euro-Highway Rally', 'ETS2 Convoy', NOW() + INTERVAL '5 days', 'Berlin to Paris via Luxembourg (Server 1)', 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=800&auto=format&fit=crop&q=80', 'Upcoming')
+-- Seed Default Approved Organization (BHRP Core)
+INSERT INTO public.organizations (name, tag, logo_url, description, status)
+VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80', 'Elite GTA V RolePlay & Heavy Cargo Convoy Squad', 'Approved')
 ON CONFLICT DO NOTHING;
