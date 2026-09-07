@@ -79,17 +79,22 @@ export default function Home() {
     }
 
     const processUserSession = async (user: any) => {
-      if (!user) return;
-      const userEmail = (user.email || '').toLowerCase();
-      const isRoot = userEmail === 'basharat81253@gmail.com';
+      const userEmail = user.email || '';
+      const isRoot = userEmail.toLowerCase() === 'basharat81253@gmail.com';
 
-      // Read cached local profile to preserve chosen role if DB is async/unpopulated
       let cachedLocal: UserProfile | null = null;
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem('bhrp_active_profile');
         if (raw) {
           try {
-            cachedLocal = JSON.parse(raw);
+            const parsed = JSON.parse(raw);
+            // ONLY use cache if it belongs to the currently logged in user!
+            if (parsed.id === user.id) {
+              cachedLocal = parsed;
+            } else {
+              // Different user logged in, clear the stale cache
+              localStorage.removeItem('bhrp_active_profile');
+            }
           } catch (e) {
             console.warn('Could not parse local profile');
           }
@@ -99,6 +104,7 @@ export default function Home() {
       let profile = await fetchUserProfile(user.id, userEmail);
 
       if (!profile) {
+        // DB profile missing (trigger failed or old user). We must create it!
         const savedAccountType: AccountType = isRoot
           ? 'Root Admin'
           : (cachedLocal && cachedLocal.accountType && cachedLocal.accountType !== 'Unassigned'
@@ -114,13 +120,33 @@ export default function Home() {
           rank: isRoot ? 'Leader' : (cachedLocal?.rank || 'Member'),
           accountType: savedAccountType,
           isRootAdmin: isRoot,
-          currentFamilyId: cachedLocal?.currentFamilyId,
-          appliedFamilyId: cachedLocal?.appliedFamilyId,
+          isBlocked: false,
+          currentFamilyId: cachedLocal?.currentFamilyId || undefined,
+          appliedFamilyId: cachedLocal?.appliedFamilyId || undefined,
           applicationStatus: cachedLocal?.applicationStatus || 'None',
           discordTag: cachedLocal?.discordTag || `${userEmail.split('@')[0]}#0000`,
           bio: cachedLocal?.bio || (isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member'),
           xp: cachedLocal?.xp || (isRoot ? 2000 : 100),
+          createdAt: new Date().toISOString()
         };
+
+        // Fix the DB so it exists for future queries
+        if (supabase) {
+          await supabase.from('profiles').upsert({
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.fullName,
+            avatar_url: profile.avatarUrl,
+            ingame_id: profile.ingameId,
+            rank: profile.rank,
+            discord_tag: profile.discordTag,
+            bio: profile.bio,
+            xp: profile.xp,
+            account_type: profile.accountType,
+            is_root_admin: profile.isRootAdmin
+          }, { onConflict: 'id' });
+        }
+        
       } else {
         // If DB profile exists but accountType is Unassigned, see if local storage saved a role selection
         if (!isRoot && (profile.accountType === 'Unassigned' || !profile.accountType) && cachedLocal && cachedLocal.accountType && cachedLocal.accountType !== 'Unassigned') {
