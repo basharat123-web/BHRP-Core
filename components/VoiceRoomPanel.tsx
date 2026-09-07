@@ -90,10 +90,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     audioContextRef.current = ctx;
 
     try {
-      await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
       const source = ctx.createMediaStreamSource(rawStream);
-      const rnnoiseNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
-
       const compressor = ctx.createDynamicsCompressor();
       compressor.threshold.value = -30;
       compressor.knee.value = 12;
@@ -102,8 +99,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       compressor.release.value = 0.3;
 
       const destination = ctx.createMediaStreamDestination();
-      source.connect(rnnoiseNode);
-      rnnoiseNode.connect(compressor);
+      source.connect(compressor);
       compressor.connect(destination);
 
       return destination.stream;
