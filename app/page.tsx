@@ -661,6 +661,36 @@ export default function Home() {
     discordTag: string,
     ingameId: string
   ) => {
+    const success = await respondToApplication(
+      applicationId,
+      userId,
+      familyId,
+      status,
+      applicantName,
+      discordTag,
+      ingameId
+    );
+
+    if (!success) {
+      alert(`Failed to ${status.toLowerCase()} application. Please try again or check console logs.`);
+      return;
+    }
+
+    if (status === 'Approved') {
+      const newMem: Member = {
+        id: `m-${Date.now()}`,
+        name: applicantName,
+        discordTag,
+        ingameId,
+        rank: 'Member',
+        status: 'Active',
+        strikes: 0,
+        xp: 100,
+        joinedDate: new Date().toISOString().split('T')[0],
+      };
+      setMembers((prev) => [...prev, newMem]);
+    }
+
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
@@ -684,31 +714,6 @@ export default function Home() {
         bc.close();
       } catch (e) {}
     }
-
-    if (status === 'Approved') {
-      const newMem: Member = {
-        id: `m-${Date.now()}`,
-        name: applicantName,
-        discordTag,
-        ingameId,
-        rank: 'Member',
-        status: 'Active',
-        strikes: 0,
-        xp: 100,
-        joinedDate: new Date().toISOString().split('T')[0],
-      };
-      setMembers((prev) => [...prev, newMem]);
-    }
-
-    await respondToApplication(
-      applicationId,
-      userId,
-      familyId,
-      status,
-      applicantName,
-      discordTag,
-      ingameId
-    );
   };
 
   const handleCreateOrganization = async (name: string, tag: string, description?: string) => {

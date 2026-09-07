@@ -397,10 +397,13 @@ export const respondToApplication = async (
   ingameId: string
 ): Promise<boolean> => {
 
-  if (!supabase) return true;
+  if (!supabase) return false;
   try {
     const { error: appErr } = await supabase.from('family_applications').update({ status }).eq('id', applicationId);
-    if (appErr) console.error("Error updating family_applications:", appErr);
+    if (appErr) {
+      console.error("Error updating family_applications:", appErr);
+      return false;
+    }
 
     if (status === 'Approved') {
       // 1. Update the member's profile
@@ -411,7 +414,10 @@ export const respondToApplication = async (
         account_type: 'Member' // MUST upgrade them to Member so UI unlocks
       }).eq('id', userId);
       
-      if (profErr) console.error("Error updating profile for approval:", profErr);
+      if (profErr) {
+        console.error("Error updating profile for approval:", profErr);
+        return false;
+      }
 
       // 2. Add them to the family roster
       const { error: memErr } = await supabase.from('members').insert([
@@ -426,19 +432,25 @@ export const respondToApplication = async (
           xp: 100,
         },
       ]);
-      if (memErr) console.error("Error inserting member:", memErr);
+      if (memErr) {
+        console.error("Error inserting member:", memErr);
+        // We don't fail the whole process if this fails, but it's good to log
+      }
       
     } else {
       const { error: profErr } = await supabase.from('profiles').update({
         application_status: 'Rejected',
       }).eq('id', userId);
-      if (profErr) console.error("Error updating profile for rejection:", profErr);
+      if (profErr) {
+        console.error("Error updating profile for rejection:", profErr);
+        return false;
+      }
     }
 
     return true;
   } catch (err) {
     console.error('Error responding to application:', err);
-    return true;
+    return false;
   }
 };
 
