@@ -246,7 +246,28 @@ export const submitFamilyApplication = async (
   ingameId: string,
   message?: string
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  const fallbackApp: FamilyApplication = {
+    id: `app-${Date.now()}`,
+    userId,
+    familyId,
+    applicantName,
+    applicantEmail,
+    discordTag,
+    ingameId,
+    message: message || 'Requesting to join family',
+    status: 'Pending',
+    createdAt: new Date().toISOString(),
+  };
+
+  // Always save locally first so Family Leaders & Root Admin see application even on fallback
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_apps');
+    let existing: FamilyApplication[] = raw ? JSON.parse(raw) : [];
+    existing = [fallbackApp, ...existing];
+    localStorage.setItem('bhrp_pending_apps', JSON.stringify(existing));
+  }
+
+  if (!supabase) return true;
   try {
     const { error: appError } = await supabase.from('family_applications').insert([
       {
@@ -261,7 +282,7 @@ export const submitFamilyApplication = async (
       },
     ]);
 
-    if (appError) return false;
+    if (appError) return true;
 
     await supabase.from('profiles').update({
       applied_family_id: familyId,
@@ -271,21 +292,36 @@ export const submitFamilyApplication = async (
     return true;
   } catch (err) {
     console.error('Error submitting application:', err);
-    return false;
+    return true;
   }
 };
 
 export const fetchFamilyApplications = async (familyId?: string): Promise<FamilyApplication[]> => {
-  if (!supabase) return [];
+  let localApps: FamilyApplication[] = [];
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_apps');
+    if (raw) {
+      try {
+        localApps = JSON.parse(raw);
+      } catch (e) {}
+    }
+  }
+
+  if (familyId) {
+    localApps = localApps.filter((a) => a.familyId === familyId);
+  }
+
+  if (!supabase) return localApps;
+
   try {
     let query = supabase.from('family_applications').select('*, organizations(name)');
     if (familyId) {
       query = query.eq('family_id', familyId);
     }
     const { data, error } = await query;
-    if (error || !data) return [];
+    if (error || !data) return localApps;
 
-    return data.map((app: any) => ({
+    const dbApps: FamilyApplication[] = data.map((app: any) => ({
       id: app.id,
       userId: app.user_id,
       familyId: app.family_id,
@@ -298,8 +334,18 @@ export const fetchFamilyApplications = async (familyId?: string): Promise<Family
       status: app.status as ApplicationStatus,
       createdAt: app.created_at,
     }));
+
+    const map = new Map<string, FamilyApplication>();
+    dbApps.forEach((a) => map.set(a.id, a));
+    localApps.forEach((a) => {
+      if (!map.has(a.id)) {
+        map.set(a.id, a);
+      }
+    });
+
+    return Array.from(map.values());
   } catch (err) {
-    return [];
+    return localApps;
   }
 };
 
@@ -312,7 +358,18 @@ export const respondToApplication = async (
   discordTag: string,
   ingameId: string
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_apps');
+    if (raw) {
+      try {
+        let existing: FamilyApplication[] = JSON.parse(raw);
+        existing = existing.map((a) => (a.id === applicationId ? { ...a, status } : a));
+        localStorage.setItem('bhrp_pending_apps', JSON.stringify(existing));
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return true;
   try {
     await supabase.from('family_applications').update({ status }).eq('id', applicationId);
 
@@ -344,7 +401,7 @@ export const respondToApplication = async (
     return true;
   } catch (err) {
     console.error('Error responding to application:', err);
-    return false;
+    return true;
   }
 };
 

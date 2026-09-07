@@ -517,17 +517,23 @@ export default function Home() {
       localStorage.setItem('bhrp_active_profile', JSON.stringify(updatedProfile));
     }
 
-    if (supabase && userProfile.id) {
-      await submitFamilyApplication(
-        userProfile.id,
-        familyId,
-        userProfile.fullName,
-        userProfile.email,
-        userProfile.discordTag,
-        userProfile.ingameId,
-        message
-      );
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('bhrp_global_sync');
+        bc.postMessage({ type: 'APPLICATION_SUBMITTED' });
+        bc.close();
+      } catch (e) {}
     }
+
+    await submitFamilyApplication(
+      userProfile.id,
+      familyId,
+      userProfile.fullName,
+      userProfile.email,
+      userProfile.discordTag,
+      userProfile.ingameId,
+      message
+    );
   };
 
   const handleRespondApplication = async (
@@ -542,6 +548,14 @@ export default function Home() {
     setApplications((prev) =>
       prev.map((a) => (a.id === applicationId ? { ...a, status } : a))
     );
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('bhrp_global_sync');
+        bc.postMessage({ type: 'APPLICATION_UPDATED' });
+        bc.close();
+      } catch (e) {}
+    }
 
     if (status === 'Approved') {
       const newMem: Member = {
