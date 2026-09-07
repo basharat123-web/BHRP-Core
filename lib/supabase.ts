@@ -172,47 +172,50 @@ export const createOrganization = async (name: string, tag: string, description?
     createdAt: new Date().toISOString(),
   };
 
-  // Always persist locally first so Root Admin sees pending request even on fallback
+  let finalOrg = fallbackOrg;
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert([
+          {
+            name,
+            tag,
+            description,
+            logo_url: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
+            status: 'Pending Approval',
+          },
+        ])
+        .select()
+        .single();
+
+      if (!error && data) {
+        finalOrg = {
+          id: data.id,
+          name: data.name,
+          tag: data.tag,
+          logoUrl: data.logo_url,
+          description: data.description,
+          status: 'Pending Approval',
+          createdAt: data.created_at,
+        };
+      }
+    } catch (err) {
+      console.error('Error inserting organization:', err);
+    }
+  }
+
+  // Always sync local storage with finalOrg so Root Admin sees request instantly across tabs
   if (typeof window !== 'undefined') {
     const raw = localStorage.getItem('bhrp_pending_orgs');
     let existing: Organization[] = raw ? JSON.parse(raw) : [];
-    existing = [fallbackOrg, ...existing];
+    existing = existing.filter((o) => o.id !== finalOrg.id && o.name !== finalOrg.name);
+    existing = [finalOrg, ...existing];
     localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
   }
 
-  if (!supabase) return fallbackOrg;
-
-  try {
-    const { data, error } = await supabase
-      .from('organizations')
-      .insert([
-        {
-          name,
-          tag,
-          description,
-          logo_url: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
-          status: 'Pending Approval',
-        },
-      ])
-      .select()
-      .single();
-
-    if (error || !data) return fallbackOrg;
-
-    const created: Organization = {
-      id: data.id,
-      name: data.name,
-      tag: data.tag,
-      logoUrl: data.logo_url,
-      description: data.description,
-      status: 'Pending Approval',
-      createdAt: data.created_at,
-    };
-
-    return created;
-  } catch (err) {
-    return fallbackOrg;
-  }
+  return finalOrg;
 };
 
 export const respondToOrganization = async (orgId: string, status: 'Approved' | 'Rejected'): Promise<boolean> => {

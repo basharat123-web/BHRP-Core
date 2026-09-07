@@ -367,6 +367,7 @@ export default function Home() {
     const updatedProfile: UserProfile = {
       ...userProfile,
       accountType: role,
+      rank: role === 'Family Leader' ? 'Leader' : userProfile.rank,
       currentFamilyId: createdOrgId,
     };
 
@@ -378,6 +379,7 @@ export default function Home() {
     if (supabase && userProfile.id) {
       await updateUserProfile(userProfile.id, {
         accountType: role,
+        rank: role === 'Family Leader' ? 'Leader' : userProfile.rank,
         currentFamilyId: createdOrgId,
       });
     }

@@ -94,9 +94,14 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   </span>
                 )}
 
-                <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getRankBadgeColor(profile.rank)}`}>
-                  {profile.rank}
-                </span>
+                {(() => {
+                  const displayRank = profile.accountType === 'Family Leader' ? 'Leader' : (profile.accountType === 'Root Admin' ? 'Root Admin' : profile.rank);
+                  return (
+                    <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getRankBadgeColor(displayRank)}`}>
+                      {displayRank}
+                    </span>
+                  );
+                })()}
               </div>
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 font-mono">
