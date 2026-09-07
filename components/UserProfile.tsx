@@ -185,18 +185,24 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               <div className="flex items-center justify-between pt-1">
                 <span className="text-slate-500">Family Status</span>
                 {profile.accountType === 'Family Leader' ? (
-                  myOrg?.status === 'Approved' ? (
-                    <span className="font-bold text-emerald-400 flex items-center gap-1">
-                      <Check className="w-3.5 h-3.5" /> Approved Family Squad
-                    </span>
+                  myOrg ? (
+                    myOrg.status === 'Approved' ? (
+                      <span className="font-bold text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Approved: {myOrg.name}
+                      </span>
+                    ) : (
+                      <span className="font-bold text-amber-400 flex items-center gap-1" title="Requires basharat81253@gmail.com approval">
+                        <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Approval: {myOrg.name}
+                      </span>
+                    )
                   ) : (
-                    <span className="font-bold text-amber-400 flex items-center gap-1" title="Requires basharat81253@gmail.com approval">
-                      <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Root Admin Approval
+                    <span className="font-bold text-amber-400 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Root Admin Sign-off
                     </span>
                   )
                 ) : profile.currentFamilyId ? (
                   <span className="font-bold text-emerald-400 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Assigned to Family
+                    <Check className="w-3.5 h-3.5" /> Assigned to {myOrg?.name || 'Family'}
                   </span>
                 ) : profile.applicationStatus === 'Pending' ? (
                   <span className="font-bold text-amber-400 flex items-center gap-1">

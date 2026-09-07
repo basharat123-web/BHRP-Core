@@ -339,20 +339,17 @@ export default function Home() {
 
     let createdOrgId: string | undefined = undefined;
 
-    if (role === 'Family Leader' && familyName && familyTag) {
-      const newOrg = await createOrganization(familyName, familyTag);
+    if (role === 'Family Leader') {
+      const finalName = familyName?.trim() || `${userProfile.fullName.split(' ')[0]}'s Family Squad`;
+      const finalTag = familyTag?.trim() || 'BH-SQ';
+
+      const newOrg = await createOrganization(finalName, finalTag);
       if (newOrg) {
         createdOrgId = newOrg.id;
-        setOrganizations((prev) => [...prev, newOrg]);
-      } else {
-        const fallbackOrg: Organization = {
-          id: `org-${Date.now()}`,
-          name: familyName,
-          tag: familyTag,
-          status: 'Pending Approval',
-        };
-        createdOrgId = fallbackOrg.id;
-        setOrganizations((prev) => [...prev, fallbackOrg]);
+        setOrganizations((prev) => {
+          if (prev.some((o) => o.id === newOrg.id)) return prev;
+          return [newOrg, ...prev];
+        });
       }
 
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
