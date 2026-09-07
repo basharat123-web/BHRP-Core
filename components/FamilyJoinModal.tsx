@@ -17,7 +17,8 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
   onSubmitApplication,
   onClose,
 }) => {
-  const [selectedOrgId, setSelectedOrgId] = useState<string>(organizations[0]?.id || '');
+  const approvedOrgs = organizations.filter((o) => o.status === 'Approved');
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(approvedOrgs[0]?.id || organizations[0]?.id || '');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -86,30 +87,34 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Select RP Family / Squad</label>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {organizations.map((org) => (
-                  <div
-                    key={org.id}
-                    onClick={() => setSelectedOrgId(org.id)}
-                    className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
-                      selectedOrgId === org.id
-                        ? 'bg-yellow-500/15 border-yellow-400 shadow-md shadow-yellow-500/10'
-                        : 'bg-[#12141c] border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
-                        <Shield className="w-5 h-5 text-yellow-400" />
+                {approvedOrgs.length === 0 ? (
+                  <p className="text-slate-400 text-xs italic font-mono p-3 bg-slate-900/60 rounded-xl">No active approved families available to join at the moment.</p>
+                ) : (
+                  approvedOrgs.map((org) => (
+                    <div
+                      key={org.id}
+                      onClick={() => setSelectedOrgId(org.id)}
+                      className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                        selectedOrgId === org.id
+                          ? 'bg-yellow-500/15 border-yellow-400 shadow-md shadow-yellow-500/10'
+                          : 'bg-[#12141c] border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-sm">{org.name}</h4>
+                          <p className="text-xs text-slate-400">{org.description || 'Official RP Family'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-white text-sm">{org.name}</h4>
-                        <p className="text-xs text-slate-400">{org.description || 'Official RP Family'}</p>
-                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-bold">
+                        [{org.tag}]
+                      </span>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-bold">
-                      [{org.tag}]
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
