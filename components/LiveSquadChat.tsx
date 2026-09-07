@@ -396,10 +396,13 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
 
 // Subcomponent for chat bubble
 const ChatBubble = ({ msg, isMe, isAnnouncement = false }: { msg: ChatMessage, isMe: boolean, isAnnouncement?: boolean }) => {
+  const isFamilyLeader = msg.senderRank === 'Leader' || msg.senderName?.toLowerCase().includes('leader');
   const isRootMsg =
-    msg.senderRank === 'Root Admin' ||
-    msg.senderName?.toLowerCase().includes('basharat') ||
-    msg.senderName?.toLowerCase().includes('root');
+    !isFamilyLeader && (
+      msg.senderRank === 'Root Admin' ||
+      msg.senderName?.toLowerCase().includes('basharat') ||
+      msg.senderName?.toLowerCase().includes('root')
+    );
 
   return (
     <div className={`flex items-start space-x-3 ${isMe && !isAnnouncement ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -408,25 +411,25 @@ const ChatBubble = ({ msg, isMe, isAnnouncement = false }: { msg: ChatMessage, i
           src={msg.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
           alt={msg.senderName}
           className={`w-10 h-10 rounded-xl object-cover border-2 ${
-            isRootMsg ? 'border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 'border-slate-700'
+            isFamilyLeader || isRootMsg ? 'border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 'border-slate-700'
           }`}
         />
-        {isRootMsg && <Crown className="w-4 h-4 text-yellow-400 absolute -top-2 -right-1 animate-bounce drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />}
+        {(isFamilyLeader || isRootMsg) && <Crown className="w-4 h-4 text-yellow-400 absolute -top-2 -right-1 animate-bounce drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />}
       </div>
 
       <div className={`max-w-[85%] space-y-1 ${isMe && !isAnnouncement ? 'items-end text-right' : ''}`}>
         <div className="flex items-center flex-wrap gap-2 mb-1">
           {/* SENDER RANK BADGE - Super Prominent */}
           <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-            isRootMsg 
+            isFamilyLeader || isRootMsg
               ? 'bg-yellow-500 text-slate-950 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]'
-              : msg.senderRank === 'Leader' 
+              : msg.senderRank === 'Leader'
               ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
               : msg.senderRank === 'High Command'
               ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
               : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
           }`}>
-            {isRootMsg ? 'Supreme Root Admin' : msg.senderRank}
+            {isFamilyLeader ? 'Family Leader' : isRootMsg ? 'Supreme Root Admin' : msg.senderRank}
           </span>
           
           <span className="font-bold text-white text-sm tracking-wide">{msg.senderName}</span>
