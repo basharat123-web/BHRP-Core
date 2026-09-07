@@ -14,6 +14,7 @@ import { FamilyJoinModal } from '@/components/FamilyJoinModal';
 import { FamilyApplicationsView } from '@/components/FamilyApplicationsView';
 import { GoogleSignInModal } from '@/components/GoogleSignInModal';
 import { LiveSquadChat } from '@/components/LiveSquadChat';
+import { VoiceRoomPanel } from '@/components/VoiceRoomPanel';
 import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType, Notification } from '@/lib/types';
 import {
   supabase,
@@ -1067,7 +1068,10 @@ export default function Home() {
 
         {activeTab === 'chat' && userProfile && (
           isRootAdmin || userProfile.accountType === 'Family Leader' || Boolean(userProfile.currentFamilyId) ? (
-            <LiveSquadChat userProfile={userProfile} organizations={organizations} members={members} />
+            <>
+              <VoiceRoomPanel userProfile={userProfile} organizations={organizations} />
+              <LiveSquadChat userProfile={userProfile} organizations={organizations} members={members} />
+            </>
           ) : (
             <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
               <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
