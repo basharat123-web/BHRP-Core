@@ -121,14 +121,16 @@ export default function Home() {
 
   // 1. Supabase Auth Listener
   useEffect(() => {
-    if (!supabase) {
+    const client = supabase;
+    if (!client) {
       setAuthLoading(false);
       return;
     }
 
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data } = await client.auth.getSession();
+        const session = data?.session;
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id);
           if (profile) {
@@ -157,7 +159,7 @@ export default function Home() {
 
     checkSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await fetchUserProfile(session.user.id);
         if (profile) {
@@ -181,9 +183,10 @@ export default function Home() {
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      authListener?.subscription?.unsubscribe();
     };
   }, []);
+
 
   // 2. Real-Time Presence Live Viewers Counter
   useEffect(() => {
