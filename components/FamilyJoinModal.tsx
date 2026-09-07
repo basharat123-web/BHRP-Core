@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { Organization, UserProfile } from '@/lib/types';
-import { Users, Shield, Send, CheckCircle2, Clock, X, AlertCircle } from 'lucide-react';
+import { Users, Shield, Send, CheckCircle2, Clock, X, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface FamilyJoinModalProps {
   userProfile: UserProfile;
   organizations: Organization[];
   onSubmitApplication: (familyId: string, message: string) => Promise<void>;
   onClose: () => void;
+  onRefreshStatus?: () => Promise<void>;
 }
 
 export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
@@ -16,12 +17,21 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
   organizations,
   onSubmitApplication,
   onClose,
+  onRefreshStatus,
 }) => {
   const approvedOrgs = organizations.filter((o) => o.status === 'Approved');
   const [selectedOrgId, setSelectedOrgId] = useState<string>(approvedOrgs[0]?.id || organizations[0]?.id || '');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefreshStatus) return;
+    setRefreshing(true);
+    await onRefreshStatus();
+    setRefreshing(false);
+  };
 
   const handleSubmit = async () => {
     if (!selectedOrgId) return;
@@ -71,7 +81,7 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
             </div>
           </div>
         ) : isPending || submitted ? (
-          <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 space-y-3">
+          <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 space-y-4">
             <div className="flex items-center space-x-3">
               <Clock className="w-6 h-6 text-amber-400 animate-pulse" />
               <div>
@@ -79,6 +89,16 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
                 <p className="text-xs text-amber-400/90">Your join request has been sent to the Family Leader & Root Admin for review.</p>
               </div>
             </div>
+            {onRefreshStatus && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="w-full py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Checking status...' : 'Check Approval Status'}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

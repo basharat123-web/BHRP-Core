@@ -198,6 +198,9 @@ export default function Home() {
 
     // Also listen for profile updates (so member sees approval instantly from any device/browser)
     let profileChannel: any;
+    let appStatusChannel: any;
+    let profilePollInterval: any;
+
     const cachedProfileId = (() => {
       try {
         const raw = typeof window !== 'undefined' ? localStorage.getItem('bhrp_active_profile') : null;
@@ -205,7 +208,22 @@ export default function Home() {
       } catch { return null; }
     })();
 
+    const refreshCurrentProfile = async (userId: string) => {
+      const freshProfile = await fetchUserProfile(userId);
+      if (freshProfile) {
+        setUserProfile(prev => {
+          if (!prev) return prev;
+          const merged = { ...prev, ...freshProfile };
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('bhrp_active_profile', JSON.stringify(merged));
+          }
+          return merged;
+        });
+      }
+    };
+
     if (cachedProfileId) {
+      // 1. Listen for profile table UPDATE via Realtime
       profileChannel = supabase
         .channel(`profile-update-${cachedProfileId}`)
         .on(
@@ -231,11 +249,43 @@ export default function Home() {
           }
         )
         .subscribe();
+
+      // 2. Also listen for family_applications changes for this user (more reliable)
+      appStatusChannel = supabase
+        .channel(`app-status-${cachedProfileId}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'family_applications', filter: `user_id=eq.${cachedProfileId}` },
+          async (payload: any) => {
+            const updated = payload.new;
+            if (!updated) return;
+            // If status changed to Approved or Rejected, refresh the full profile from DB
+            if (updated.status === 'Approved' || updated.status === 'Rejected') {
+              await refreshCurrentProfile(cachedProfileId);
+            }
+          }
+        )
+        .subscribe();
+
+      // 3. Poll every 15 seconds as guaranteed fallback
+      profilePollInterval = setInterval(async () => {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('bhrp_active_profile') : null;
+        if (!raw) return;
+        try {
+          const cached = JSON.parse(raw);
+          // Only poll if member has a pending application
+          if (cached.applicationStatus === 'Pending' && cached.id) {
+            await refreshCurrentProfile(cached.id);
+          }
+        } catch (e) {}
+      }, 15000);
     }
 
     return () => {
       if (supabase) supabase.removeChannel(orgChannel);
       if (profileChannel && supabase) supabase.removeChannel(profileChannel);
+      if (appStatusChannel && supabase) supabase.removeChannel(appStatusChannel);
+      if (profilePollInterval) clearInterval(profilePollInterval);
     };
   }, []);
 
@@ -1031,6 +1081,19 @@ export default function Home() {
           organizations={organizations}
           onSubmitApplication={handleSubmitApplication}
           onClose={() => setShowJoinModal(false)}
+          onRefreshStatus={async () => {
+            if (!userProfile?.id) return;
+            const fresh = await fetchUserProfile(userProfile.id);
+            if (fresh) {
+              setUserProfile(prev => {
+                const merged = { ...prev, ...fresh };
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('bhrp_active_profile', JSON.stringify(merged));
+                }
+                return merged;
+              });
+            }
+          }}
         />
       )}
 
