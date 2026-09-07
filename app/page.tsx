@@ -280,6 +280,47 @@ export default function Home() {
     };
   }, []);
 
+  // 3. Cross-Tab & Broadcast Channel Realtime Sync (for instant Root Admin & Leader updates)
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      bc = new BroadcastChannel('bhrp_global_sync');
+      bc.onmessage = async (ev) => {
+        if (ev.data?.type === 'ORG_CREATED' || ev.data?.type === 'ORG_UPDATED') {
+          const freshOrgs = await fetchOrganizations();
+          if (freshOrgs.length > 0) {
+            setOrganizations(freshOrgs);
+          }
+        } else if (ev.data?.type === 'APPLICATION_SUBMITTED' || ev.data?.type === 'APPLICATION_UPDATED') {
+          const freshApps = await fetchFamilyApplications();
+          if (freshApps.length > 0) {
+            setApplications(freshApps);
+          }
+        }
+      };
+    }
+
+    const handleStorageEvent = async (e: StorageEvent) => {
+      if (e.key === 'bhrp_pending_orgs') {
+        const freshOrgs = await fetchOrganizations();
+        if (freshOrgs.length > 0) {
+          setOrganizations(freshOrgs);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageEvent);
+    }
+
+    return () => {
+      if (bc) bc.close();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageEvent);
+      }
+    };
+  }, []);
+
   // 3. Real-Time Presence Counter
   useEffect(() => {
     let presenceChannel: any = null;
@@ -399,6 +440,14 @@ export default function Home() {
         createdOrgId = fallbackOrg.id;
         setOrganizations((prev) => [...prev, fallbackOrg]);
       }
+
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const bc = new BroadcastChannel('bhrp_global_sync');
+          bc.postMessage({ type: 'ORG_CREATED' });
+          bc.close();
+        } catch (e) {}
+      }
     }
 
     const updatedProfile: UserProfile = {
@@ -424,6 +473,15 @@ export default function Home() {
     setOrganizations((prev) =>
       prev.map((o) => (o.id === orgId ? { ...o, status } : o))
     );
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('bhrp_global_sync');
+        bc.postMessage({ type: 'ORG_UPDATED' });
+        bc.close();
+      } catch (e) {}
+    }
+
     if (supabase) {
       await respondToOrganization(orgId, status);
     }
@@ -736,7 +794,27 @@ export default function Home() {
         )}
 
         {activeTab === 'chat' && userProfile && (
-          <LiveSquadChat userProfile={userProfile} />
+          isRootAdmin || userProfile.accountType === 'Family Leader' || Boolean(userProfile.currentFamilyId) ? (
+            <LiveSquadChat userProfile={userProfile} />
+          ) : (
+            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
+              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
+                <Shield className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Family Membership Required</h3>
+              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+                As a Member Account, tactical comms (live chat & squad voice channels) are locked until your application is accepted by an official RP Family Leader.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowJoinModal(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                >
+                  Apply to Join a Family
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         {activeTab === 'applications' && (

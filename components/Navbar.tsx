@@ -35,6 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isRootAdmin = userProfile?.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile?.isRootAdmin;
   const isLeader = userProfile?.accountType === 'Family Leader' || isRootAdmin;
+  const canAccessComms = isRootAdmin || isLeader || (userProfile?.accountType === 'Member' && Boolean(userProfile?.currentFamilyId));
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#090a0f]/90 border-b border-yellow-500/30 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
@@ -98,7 +99,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
 
-            {userProfile && (
+            {userProfile && canAccessComms && (
               <button
                 onClick={() => setActiveTab('chat')}
                 className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -252,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{upcomingEventCount}</span>
           </button>
 
-          {userProfile && (
+          {userProfile && canAccessComms && (
             <button
               onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
