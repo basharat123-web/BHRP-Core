@@ -204,10 +204,53 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       bc = new BroadcastChannel('bhrp_global_sync');
       bc.onmessage = async (ev) => {
-        if (ev.data?.type === 'ORG_CREATED' || ev.data?.type === 'ORG_UPDATED') {
+        const { type, org, orgId, status, app, appId } = ev.data || {};
+        if (type === 'ORG_CREATED' && org) {
+          setOrganizations((prev) => {
+            if (prev.some((o) => o.id === org.id)) return prev;
+            return [org, ...prev];
+          });
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('bhrp_pending_orgs');
+            let existing: Organization[] = raw ? JSON.parse(raw) : [];
+            existing = [org, ...existing.filter((o) => o.id !== org.id)];
+            localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+          }
+        } else if (type === 'ORG_UPDATED' && orgId && status) {
+          setOrganizations((prev) =>
+            prev.map((o) => (o.id === orgId ? { ...o, status } : o))
+          );
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('bhrp_pending_orgs');
+            if (raw) {
+              try {
+                let existing: Organization[] = JSON.parse(raw);
+                existing = existing.map((o) => (o.id === orgId ? { ...o, status } : o));
+                localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+              } catch (e) {}
+            }
+          }
+        } else if (type === 'ORG_DELETED' && orgId) {
+          setOrganizations((prev) => prev.filter((o) => o.id !== orgId));
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('bhrp_pending_orgs');
+            if (raw) {
+              try {
+                let existing: Organization[] = JSON.parse(raw);
+                existing = existing.filter((o) => o.id !== orgId);
+                localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+              } catch (e) {}
+            }
+          }
+        } else if (type === 'APPLICATION_SUBMITTED' && app) {
+          setApplications((prev) => [app, ...prev]);
+        } else if (type === 'APPLICATION_UPDATED' && appId && status) {
+          setApplications((prev) =>
+            prev.map((a) => (a.id === appId ? { ...a, status } : a))
+          );
+        } else {
           const freshOrgs = await fetchOrganizations();
           setOrganizations(freshOrgs);
-        } else if (ev.data?.type === 'APPLICATION_SUBMITTED' || ev.data?.type === 'APPLICATION_UPDATED') {
           const freshApps = await fetchFamilyApplications();
           setApplications(freshApps);
         }
@@ -355,7 +398,9 @@ export default function Home() {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         try {
           const bc = new BroadcastChannel('bhrp_global_sync');
-          bc.postMessage({ type: 'ORG_CREATED' });
+          if (newOrg) {
+            bc.postMessage({ type: 'ORG_CREATED', org: newOrg });
+          }
           bc.close();
         } catch (e) {}
       }
@@ -390,7 +435,7 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
-        bc.postMessage({ type: 'ORG_UPDATED' });
+        bc.postMessage({ type: 'ORG_UPDATED', orgId, status });
         bc.close();
       } catch (e) {}
     }
@@ -406,7 +451,7 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
-        bc.postMessage({ type: 'ORG_UPDATED' });
+        bc.postMessage({ type: 'ORG_DELETED', orgId });
         bc.close();
       } catch (e) {}
     }
@@ -447,7 +492,7 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
-        bc.postMessage({ type: 'APPLICATION_SUBMITTED' });
+        bc.postMessage({ type: 'APPLICATION_SUBMITTED', app: newApp });
         bc.close();
       } catch (e) {}
     }
@@ -479,7 +524,7 @@ export default function Home() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
-        bc.postMessage({ type: 'APPLICATION_UPDATED' });
+        bc.postMessage({ type: 'APPLICATION_UPDATED', appId: applicationId, status });
         bc.close();
       } catch (e) {}
     }
@@ -516,6 +561,13 @@ export default function Home() {
     const newOrg = await createOrganization(name, tag, description);
     if (newOrg) {
       setOrganizations((prev) => [...prev, newOrg]);
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const bc = new BroadcastChannel('bhrp_global_sync');
+          bc.postMessage({ type: 'ORG_CREATED', org: newOrg });
+          bc.close();
+        } catch (e) {}
+      }
     } else {
       const fallbackOrg: Organization = {
         id: `org-${Date.now()}`,
@@ -525,6 +577,13 @@ export default function Home() {
         status: 'Approved',
       };
       setOrganizations((prev) => [...prev, fallbackOrg]);
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const bc = new BroadcastChannel('bhrp_global_sync');
+          bc.postMessage({ type: 'ORG_CREATED', org: fallbackOrg });
+          bc.close();
+        } catch (e) {}
+      }
     }
   };
 

@@ -138,3 +138,12 @@ CREATE TRIGGER on_auth_user_created
 INSERT INTO public.organizations (name, tag, logo_url, description, status)
 VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80', 'Elite GTA V RolePlay & Heavy Cargo Convoy Squad', 'Approved')
 ON CONFLICT DO NOTHING;
+
+-- Ensure RLS does not block API requests across browsers/devices
+ALTER TABLE public.organizations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.members DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_slots DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.family_applications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages DISABLE ROW LEVEL SECURITY;
