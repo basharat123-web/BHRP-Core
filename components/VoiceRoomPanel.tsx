@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Peer from 'simple-peer';
@@ -44,20 +44,17 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   const [micLevel, setMicLevel] = useState<number>(0);
 
   const localStreamRef = useRef<MediaStream | null>(null);
-  const processedStreamRef = useRef<MediaStream | null>(null); // NC-processed stream sent via WebRTC
+  const processedStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const noiseGateGainRef = useRef<GainNode | null>(null);
   const peersRef = useRef<Map<string, Peer.Instance>>(new Map());
   const roomChannelRef = useRef<any>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const monitorIntervalRef = useRef<number | null>(null);
-  const noiseGateIntervalRef = useRef<number | null>(null);
 
   const defaultRooms = useMemo(() => {
     const base: VoiceRoomMeta[] = [
       { id: 'root-command-room', label: 'Root Command Voice', type: 'root', members: [] },
     ];
-
     if (familyId) {
       base.push({
         id: `family-voice-${familyId}`,
@@ -67,7 +64,6 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         members: [],
       });
     }
-
     return base;
   }, [familyId]);
 
@@ -78,7 +74,6 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   useEffect(() => {
     return () => {
       if (monitorIntervalRef.current) window.clearInterval(monitorIntervalRef.current);
-      if (noiseGateIntervalRef.current) window.clearInterval(noiseGateIntervalRef.current);
       localStreamRef.current?.getTracks().forEach(track => track.stop());
       processedStreamRef.current?.getTracks().forEach(track => track.stop());
       audioContextRef.current?.close();
@@ -87,11 +82,6 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     };
   }, []);
 
-  /**
-   * Discord-style ML noise cancellation using RNNoise (Mozilla/Xiph model via Jitsi WASM).
-   * Routes mic audio through an AudioWorklet running the actual RNNoise neural network.
-   * Falls back to browser-native noise suppression if the worklet fails.
-   */
   const buildProcessedStream = async (rawStream: MediaStream): Promise<MediaStream> => {
     const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtor) return rawStream;
@@ -100,13 +90,10 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     audioContextRef.current = ctx;
 
     try {
-      // Load the RNNoise AudioWorklet (served from /public)
       await ctx.audioWorklet.addModule('/rnnoise-worklet.js');
-
       const source = ctx.createMediaStreamSource(rawStream);
       const rnnoiseNode = new AudioWorkletNode(ctx, 'rnnoise-processor');
 
-      // Gentle dynamics compressor after RNNoise for volume normalization
       const compressor = ctx.createDynamicsCompressor();
       compressor.threshold.value = -30;
       compressor.knee.value = 12;
@@ -115,25 +102,16 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       compressor.release.value = 0.3;
 
       const destination = ctx.createMediaStreamDestination();
-
-      // Chain: Mic → RNNoise ML → Compressor → Output
       source.connect(rnnoiseNode);
       rnnoiseNode.connect(compressor);
       compressor.connect(destination);
 
-      console.log('[BHRP] RNNoise ML noise cancellation active ✓');
       return destination.stream;
-
     } catch (err) {
-      // Fallback: if AudioWorklet fails, use a simpler Web Audio chain
-      console.warn('[BHRP] RNNoise worklet failed, using native NC fallback:', err);
       ctx.close();
-
-      // Just rely on browser's native noiseSuppression (already enabled in getUserMedia)
       return rawStream;
     }
   };
-
 
   const stopLocalStream = () => {
     localStreamRef.current?.getTracks().forEach(track => track.stop());
@@ -141,14 +119,9 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     localStreamRef.current = null;
     processedStreamRef.current = null;
     analyserRef.current = null;
-    noiseGateGainRef.current = null;
     if (monitorIntervalRef.current) {
       window.clearInterval(monitorIntervalRef.current);
       monitorIntervalRef.current = null;
-    }
-    if (noiseGateIntervalRef.current) {
-      window.clearInterval(noiseGateIntervalRef.current);
-      noiseGateIntervalRef.current = null;
     }
     audioContextRef.current?.close();
     audioContextRef.current = null;
@@ -161,103 +134,64 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
   const syncRoomPresence = (roomId: string, presenceState: Record<string, any>) => {
     const members = Object.entries(presenceState).flatMap(([id, entries]: [string, any]) => {
-      // Supabase presence state: { [key]: [presenceEntry, ...] } — values are arrays
       const entryList = Array.isArray(entries) ? entries : [entries];
-      return entryList.map((entry: any) => ({
-        id: entry.id || id,
-        name: entry.name || entry.fullName || 'Member',
-        avatarUrl: entry.avatarUrl,
-        isMuted: Boolean(entry.isMuted),
-        isHost: Boolean(entry.isHost),
-      }));
+      if (!entryList.length) return [];
+      const data = entryList[0];
+      return {
+        id,
+        name: data.name || 'Unknown Member',
+        avatarUrl: data.avatarUrl,
+        isMuted: data.isMuted || false,
+        isHost: data.isHost || false,
+      };
     });
 
     setRooms(prev => prev.map(room => room.id === roomId ? { ...room, members } : room));
   };
 
-  const monitorMicInput = () => {
-    const stream = localStreamRef.current;
-    if (!stream || !stream.getAudioTracks().length) {
-      setMicStatus('blocked');
-      return;
-    }
-
-    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtor) {
-      setMicStatus('ready');
-      return;
-    }
-
-    const audioContext = new AudioCtor();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
-    analyserRef.current = analyser;
-
-    if (monitorIntervalRef.current) window.clearInterval(monitorIntervalRef.current);
-    monitorIntervalRef.current = window.setInterval(() => {
-      if (!analyserRef.current) return;
-      const data = new Uint8Array(analyserRef.current.fftSize);
-      analyserRef.current.getByteFrequencyData(data);
-      const average = data.reduce((sum, value) => sum + value, 0) / data.length;
-      const percent = Math.min(100, Math.round((average / 255) * 100));
-      setMicLevel(percent);
-      setMicStatus(percent > 4 ? 'ready' : 'muted');
-    }, 250);
-  };
-
   const playSpeakerTest = () => {
-    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtor) {
-      setSpeakerStatus('ready');
-      return;
-    }
-
-    const ctx = new AudioCtor();
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 440;
-    gainNode.gain.value = 0.08;
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    oscillator.start();
     setSpeakerStatus('test');
-    setStatusMessage('Speaker test playing — can you hear it?');
-
-    window.setTimeout(() => {
-      oscillator.stop();
-      oscillator.disconnect();
-      gainNode.disconnect();
-      ctx.close();
-      setSpeakerStatus('ready');
-      setStatusMessage(activeRoomId ? `Connected to ${rooms.find(r => r.id === activeRoomId)?.label || 'voice room'}` : 'Speaker confirmed');
-    }, 800);
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+    setTimeout(() => setSpeakerStatus('ready'), 600);
   };
 
-  const handleVoiceSignal = async (payload: SignalPayload) => {
-    if (!payload || payload.senderId === userProfile.id) return;
+  const monitorMicInput = () => {
+    if (!localStreamRef.current) return;
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(localStreamRef.current);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
 
-    if (payload.type === 'kick') {
-      if (payload.senderId !== userProfile.id && payload.targetId === userProfile.id) {
-        leaveRoom();
-      }
-      return;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      monitorIntervalRef.current = window.setInterval(() => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+        const sum = dataArray.reduce((a, b) => a + b, 0);
+        const avg = sum / dataArray.length;
+        setMicLevel(Math.min(100, Math.round((avg / 128) * 100)));
+      }, 100);
+      setMicStatus('ready');
+    } catch (e) {
+      setMicStatus('blocked');
     }
+  };
 
-    if (payload.type === 'leave') {
-      if (payload.targetId === userProfile.id || payload.senderId === userProfile.id) {
-        const peer = peersRef.current.get(payload.senderId);
-        peer?.destroy();
-        peersRef.current.delete(payload.senderId);
-      }
-      return;
-    }
-
+  const handleVoiceSignal = (payload: SignalPayload) => {
+    if (payload.targetId !== userProfile.id) return;
     if (!localStreamRef.current) return;
 
     if (payload.type === 'offer' || payload.type === 'answer' || payload.type === 'candidate') {
@@ -268,7 +202,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         peer = new Peer({
           initiator: false,
           trickle: true,
-          stream: processedStreamRef.current || localStreamRef.current!, // Use NC-processed stream
+          stream: processedStreamRef.current || localStreamRef.current!,
         });
 
         peer.on('signal', (signalData: any) => {
@@ -289,18 +223,8 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           const audioEl = document.getElementById(`voice-audio-${remoteUserId}`) as HTMLAudioElement | null;
           if (audioEl) {
             audioEl.srcObject = stream;
-            audioEl.play().catch(() => undefined);
-          } else {
-            const el = document.createElement('audio');
-            el.id = `voice-audio-${remoteUserId}`;
-            el.srcObject = stream;
-            el.autoplay = true;
-            document.body.appendChild(el);
+            audioEl.play().catch(e => console.error("Audio play failed", e));
           }
-        });
-
-        peer.on('error', (err: Error) => {
-          console.warn('voice signal error:', err);
         });
 
         peersRef.current.set(remoteUserId, peer);
@@ -313,40 +237,25 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   };
 
   const joinRoom = async (roomId: string) => {
-    if (!supabase) {
-      setError('Supabase must be configured for live voice channels.');
-      return;
-    }
+    if (!supabase) return setError('Supabase must be configured for live voice channels.');
 
     try {
       setError(null);
-
-      // Browser-level noise suppression (free, built-in to all modern browsers)
       const rawStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          noiseSuppression: true,
-          echoCancellation: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1,
-        },
+        audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 },
       });
       localStreamRef.current = rawStream;
 
-      // Build the RNNoise ML noise-cancellation pipeline (async — loads WASM worklet)
       const streamToSend = isNoiseCancellationOn ? await buildProcessedStream(rawStream) : rawStream;
       processedStreamRef.current = streamToSend;
 
       monitorMicInput();
       setIsMicOn(true);
 
-      const channel = supabase.channel(`voice-room-${roomId}`, {
-        config: { presence: { key: userProfile.id } },
-      });
+      const channel = supabase.channel(`voice-room-${roomId}`, { config: { presence: { key: userProfile.id } } });
 
       channel.on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        syncRoomPresence(roomId, state as Record<string, any>);
+        syncRoomPresence(roomId, channel.presenceState() as Record<string, any>);
       });
 
       channel.on('broadcast', { event: 'voice-signal' }, (payload: any) => {
@@ -373,11 +282,9 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           setStatusMessage(`Connected to ${rooms.find(r => r.id === roomId)?.label || 'voice room'}`);
           syncRoomPresence(roomId, channel.presenceState() as Record<string, any>);
 
-          // Send WebRTC offers to everyone already in the room
           const currentState = channel.presenceState() as Record<string, any>;
-          const existingMembers = Object.entries(currentState).flatMap(([, entries]) =>
-            (Array.isArray(entries) ? entries : [entries])
-          );
+          const existingMembers = Object.entries(currentState).flatMap(([, entries]) => (Array.isArray(entries) ? entries : [entries]));
+          
           for (const member of existingMembers) {
             const memberId = member.id;
             if (!memberId || memberId === userProfile.id) continue;
@@ -386,79 +293,53 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
             const peer = new Peer({
               initiator: true,
               trickle: true,
-              stream: processedStreamRef.current!, // Use NC-processed stream
+              stream: processedStreamRef.current!,
             });
 
             peer.on('signal', (signalData: any) => {
               channel.send({
                 type: 'broadcast',
                 event: 'voice-signal',
-                payload: {
-                  senderId: userProfile.id,
-                  targetId: memberId,
-                  type: 'offer',
-                  payload: signalData,
-                } as SignalPayload,
+                payload: { senderId: userProfile.id, targetId: memberId, type: 'offer', payload: signalData } as SignalPayload,
               });
             });
 
             peer.on('stream', (stream: MediaStream) => {
-              let audioEl = document.getElementById(`voice-audio-${memberId}`) as HTMLAudioElement | null;
-              if (!audioEl) {
-                audioEl = document.createElement('audio');
-                audioEl.id = `voice-audio-${memberId}`;
-                audioEl.autoplay = true;
-                document.body.appendChild(audioEl);
+              const audioEl = document.getElementById(`voice-audio-${memberId}`) as HTMLAudioElement | null;
+              if (audioEl) {
+                audioEl.srcObject = stream;
+                audioEl.play().catch(e => console.error("Audio play failed", e));
               }
-              audioEl.srcObject = stream;
-              audioEl.play().catch(() => undefined);
             });
 
-            peer.on('error', (err: Error) => console.warn('peer error:', err));
             peersRef.current.set(memberId, peer);
           }
         }
       });
 
-      if (roomChannelRef.current) {
-        supabase.removeChannel(roomChannelRef.current);
-      }
-
       roomChannelRef.current = channel;
-    } catch (err) {
-      console.error('joinRoom failed', err);
-      setError('Microphone permission is required. Please allow mic access to join the voice room.');
-      setMicStatus('blocked');
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access in your browser settings.');
+        setMicStatus('blocked');
+      } else {
+        setError(`Could not connect to voice room: ${err.message}`);
+      }
     }
   };
 
-  const leaveRoom = async () => {
-    if (!roomChannelRef.current) return;
-
-    try {
-      roomChannelRef.current.send({
-        type: 'broadcast',
-        event: 'voice-signal',
-        payload: {
-          senderId: userProfile.id,
-          targetId: '*',
-          type: 'leave' as const,
-        } as SignalPayload,
-      });
-    } catch (error) {
-      console.warn('leave broadcast error', error);
+  const leaveRoom = () => {
+    if (activeRoomId && roomChannelRef.current) {
+      roomChannelRef.current.untrack();
+      supabase.removeChannel(roomChannelRef.current);
     }
-
-    await roomChannelRef.current.untrack();
-    supabase?.removeChannel(roomChannelRef.current);
-    roomChannelRef.current = null;
-    cleanupPeers();
     stopLocalStream();
+    cleanupPeers();
     setActiveRoomId(null);
-    setStatusMessage('Voice room left');
-    setIsMicOn(false);
+    setStatusMessage('No active room');
+    setMicLevel(0);
     setMicStatus('unknown');
-
+    roomChannelRef.current = null;
     setRooms(prev => prev.map(room => ({
       ...room,
       members: room.id === activeRoomId ? [] : room.members.filter(member => member.id !== userProfile.id),
@@ -469,9 +350,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     const nextState = !isMicOn;
     setIsMicOn(nextState);
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = nextState;
-      });
+      localStreamRef.current.getAudioTracks().forEach(track => { track.enabled = nextState; });
     }
     setMicStatus(nextState ? 'ready' : 'muted');
     setStatusMessage(nextState ? 'Mic live and audible' : 'Mic muted');
@@ -479,14 +358,10 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
   const kickMember = (memberId: string) => {
     if (!roomChannelRef.current) return;
-
     roomChannelRef.current.send({
       type: 'broadcast',
       event: 'voice-command',
-      payload: {
-        action: 'kick',
-        userId: memberId,
-      },
+      payload: { action: 'kick', userId: memberId },
     });
   };
 
@@ -499,194 +374,163 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   const activeRoomUsers = activeRoomId ? (rooms.find(r => r.id === activeRoomId)?.members || []) : [];
 
   return (
-    <div className="mb-6 rounded-3xl border border-yellow-500/30 bg-[#0b0c10] p-4 shadow-2xl">
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2 text-yellow-400">
-          <Radio className="w-5 h-5" />
-          <h3 className="text-lg font-black uppercase tracking-wider">Family Voice Channels</h3>
+    <div className="mb-6 rounded-xl border border-[#2A3942] bg-[#111B21] p-5">
+      <div className="mb-5 flex items-center justify-between border-b border-[#2A3942] pb-4">
+        <div className="flex items-center gap-2 text-[#E9EDEF]">
+          <Radio className="w-5 h-5 text-[#00A884]" />
+          <h3 className="text-base font-semibold">Voice Channels</h3>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Noise Cancellation Toggle */}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsNoiseCancellationOn(prev => !prev)}
-            title={isNoiseCancellationOn ? 'Noise Cancellation ON — click to disable' : 'Noise Cancellation OFF — click to enable'}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-all ${
-              isNoiseCancellationOn
-                ? 'border-violet-500/60 bg-violet-500/20 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
-                : 'border-slate-700 bg-slate-900 text-slate-500'
+            title={isNoiseCancellationOn ? 'Noise Cancellation ON' : 'Noise Cancellation OFF'}
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+              isNoiseCancellationOn ? 'border-[#00A884] bg-[#00A884]/10 text-[#00A884]' : 'border-[#2A3942] bg-[#1F2C34] text-[#8696A0]'
             }`}
           >
-            <Wand2 className={`w-3 h-3 ${isNoiseCancellationOn ? 'animate-pulse' : ''}`} />
+            <Wand2 className="w-3.5 h-3.5" />
             NC {isNoiseCancellationOn ? 'ON' : 'OFF'}
           </button>
 
-          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-mono text-slate-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" /> {activeRoomId ? 'online' : 'standby'}
+          <span className="inline-flex items-center gap-1.5 rounded border border-[#2A3942] bg-[#1F2C34] px-2.5 py-1 text-xs text-[#8696A0]">
+            <span className={`h-2 w-2 rounded-full ${activeRoomId ? 'bg-[#00A884]' : 'bg-[#8696A0]'}`} />
+            {activeRoomId ? 'Online' : 'Standby'}
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 border border-rose-700 bg-rose-950/30 px-3 py-2 text-xs text-rose-200 flex items-center gap-2">
+        <div className="mb-4 rounded-lg border border-red-900/50 bg-red-900/20 px-3 py-2 text-sm text-red-400 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4" />
           <span>{error}</span>
         </div>
       )}
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
-        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
-          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
-            <span>Mic</span>
-            {micStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : micStatus === 'blocked' ? <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> : <MicOff className="w-3.5 h-3.5 text-slate-500" />}
+      {/* Stats Grid */}
+      <div className="mb-6 grid gap-3 grid-cols-2 md:grid-cols-4">
+        <div className="rounded-lg border border-[#2A3942] bg-[#1F2C34] p-3">
+          <div className="mb-2 flex items-center justify-between text-[11px] text-[#8696A0] font-medium uppercase tracking-wide">
+            <span>Microphone</span>
+            {micStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-[#00A884]" /> : micStatus === 'blocked' ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> : <MicOff className="w-3.5 h-3.5 text-[#8696A0]" />}
           </div>
           <div className="flex items-center gap-2">
-            {micStatus === 'ready' ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-slate-500" />}
-            <span className="text-sm font-bold text-white">
+            {micStatus === 'ready' ? <Mic className="w-4 h-4 text-[#00A884]" /> : <MicOff className="w-4 h-4 text-[#8696A0]" />}
+            <span className="text-sm font-semibold text-[#E9EDEF]">
               {micStatus === 'ready' ? 'Live' : micStatus === 'muted' ? 'Muted' : micStatus === 'blocked' ? 'Blocked' : 'Unknown'}
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
-            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-yellow-400" style={{ width: `${Math.max(8, micLevel)}%` }} />
+          <div className="mt-2.5 h-1 w-full rounded-full bg-[#2A3942] overflow-hidden">
+            <div className="h-full rounded-full bg-[#00A884] transition-all duration-75" style={{ width: `${Math.max(0, micLevel)}%` }} />
           </div>
         </div>
 
-        {/* Noise Cancellation Status Card */}
-        <div className={`rounded-2xl border bg-[#0a0d12] p-3 transition-all ${
-          isNoiseCancellationOn ? 'border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-slate-800'
-        }`}>
-          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+        <div className={`rounded-lg border bg-[#1F2C34] p-3 transition-colors ${isNoiseCancellationOn ? 'border-[#00A884]/50' : 'border-[#2A3942]'}`}>
+          <div className="mb-2 flex items-center justify-between text-[11px] text-[#8696A0] font-medium uppercase tracking-wide">
             <span>Noise Cancel</span>
-            {isNoiseCancellationOn ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+            {isNoiseCancellationOn ? <CheckCircle2 className="w-3.5 h-3.5 text-[#00A884]" /> : <VolumeX className="w-3.5 h-3.5 text-[#8696A0]" />}
           </div>
           <div className="flex items-center gap-2">
-            <Wand2 className={`w-4 h-4 ${isNoiseCancellationOn ? 'text-violet-400' : 'text-slate-500'}`} />
-            <span className={`text-sm font-bold ${isNoiseCancellationOn ? 'text-violet-300' : 'text-slate-500'}`}>
-              {isNoiseCancellationOn ? 'Active' : 'Off'}
+            <Wand2 className={`w-4 h-4 ${isNoiseCancellationOn ? 'text-[#00A884]' : 'text-[#8696A0]'}`} />
+            <span className={`text-sm font-semibold ${isNoiseCancellationOn ? 'text-[#E9EDEF]' : 'text-[#8696A0]'}`}>
+              {isNoiseCancellationOn ? 'RNNoise Active' : 'Off'}
             </span>
           </div>
-          <div className="mt-2 text-[9px] text-slate-500 leading-tight">
-            {isNoiseCancellationOn ? 'HPF + Compressor + Gate' : 'Raw mic signal'}
+          <div className="mt-2 text-[10px] text-[#8696A0]">
+            {isNoiseCancellationOn ? 'ML noise suppression' : 'Raw mic signal'}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
-          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
-            <span>Speaker</span>
-            {speakerStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : speakerStatus === 'test' ? <Volume2 className="w-3.5 h-3.5 text-yellow-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+        <div className="rounded-lg border border-[#2A3942] bg-[#1F2C34] p-3 flex flex-col justify-between">
+          <div>
+            <div className="mb-2 flex items-center justify-between text-[11px] text-[#8696A0] font-medium uppercase tracking-wide">
+              <span>Speaker</span>
+              {speakerStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-[#00A884]" /> : speakerStatus === 'test' ? <Volume2 className="w-3.5 h-3.5 text-blue-400" /> : <VolumeX className="w-3.5 h-3.5 text-[#8696A0]" />}
+            </div>
+            <div className="flex items-center gap-2">
+              {speakerStatus === 'ready' ? <Volume2 className="w-4 h-4 text-[#00A884]" /> : <VolumeX className="w-4 h-4 text-[#8696A0]" />}
+              <span className="text-sm font-semibold text-[#E9EDEF]">
+                {speakerStatus === 'ready' ? 'Working' : speakerStatus === 'test' ? 'Testing' : 'Unknown'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {speakerStatus === 'ready' ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
-            <span className="text-sm font-bold text-white">
-              {speakerStatus === 'ready' ? 'Working' : speakerStatus === 'test' ? 'Testing' : 'Unknown'}
-            </span>
-          </div>
-          <button
-            onClick={playSpeakerTest}
-            className="mt-3 w-full rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-2 py-1.5 text-[10px] font-black uppercase text-yellow-300"
-          >
-            Test speaker
+          <button onClick={playSpeakerTest} className="mt-2 text-[11px] text-blue-400 hover:text-blue-300 text-left">
+            Test audio
           </button>
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
-          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
-            <span>Room status</span>
-            {activeRoomId ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-slate-500" />}
+        <div className="rounded-lg border border-[#2A3942] bg-[#1F2C34] p-3">
+          <div className="mb-2 flex items-center justify-between text-[11px] text-[#8696A0] font-medium uppercase tracking-wide">
+            <span>Room Status</span>
+            {activeRoomId ? <Users className="w-3.5 h-3.5 text-[#00A884]" /> : <AlertTriangle className="w-3.5 h-3.5 text-[#8696A0]" />}
           </div>
-          <div className="text-sm font-bold text-white">{activeRoomId ? `${activeRoomUsers.length} in room` : 'Not joined'}</div>
-          <div className="mt-2 text-[10px] text-slate-400">{activeRoomId ? `Connected to ${rooms.find(r => r.id === activeRoomId)?.label}` : 'Join a room to begin voice chat'}</div>
+          <div className="text-sm font-semibold text-[#E9EDEF]">{activeRoomId ? `${activeRoomUsers.length} connected` : 'Not joined'}</div>
+          <div className="mt-2 text-[10px] text-[#8696A0] truncate">{activeRoomId ? `In ${rooms.find(r => r.id === activeRoomId)?.label}` : 'Select a room below'}</div>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {availableRooms.map(room => (
-          <div key={room.id} className="rounded-2xl border border-slate-800 bg-[#090a0f] p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {room.type === 'root' ? <Shield className="w-4 h-4 text-yellow-400" /> : <Users className="w-4 h-4 text-yellow-400" />}
-                <span className="font-bold text-white">{room.label}</span>
+      {/* Room Listing */}
+      <div className="grid gap-3 md:grid-cols-2">
+        {availableRooms.map((room) => (
+          <div key={room.id} className={`rounded-lg border p-4 transition-colors ${
+            activeRoomId === room.id ? 'border-[#00A884] bg-[#00A884]/5' : 'border-[#2A3942] bg-[#1F2C34]'
+          }`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-[#E9EDEF]">
+                {room.type === 'root' ? <Crown className="w-4 h-4 text-amber-400" /> : <Users className="w-4 h-4" />}
+                <h4 className="font-semibold text-sm">{room.label}</h4>
               </div>
-
-              {activeRoomId === room.id ? (
-                <button
-                  onClick={leaveRoom}
-                  className="flex items-center gap-1 rounded-xl bg-rose-600 px-3 py-1.5 text-[10px] font-bold uppercase text-white"
-                >
-                  <PhoneOff className="w-3.5 h-3.5" /> Leave
-                </button>
-              ) : (
-                <button
-                  onClick={() => joinRoom(room.id)}
-                  className="rounded-xl bg-yellow-500 px-3 py-1.5 text-[10px] font-black uppercase text-slate-950"
-                >
-                  Join
-                </button>
-              )}
+              <div className="text-xs text-[#8696A0]">{room.members.length} listening</div>
             </div>
 
-            <div className="mb-3 flex items-center gap-2 text-[10px] text-slate-400">
-              <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 font-mono">
-                {room.members.length} active
-              </span>
-              {activeRoomId === room.id && (
-                <button onClick={toggleMute} className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1">
-                  {isMicOn ? 'Mic on' : 'Mic off'}
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2">
+            <div className="mb-4 min-h-[40px] flex flex-wrap gap-2">
               {room.members.length === 0 ? (
-                <p className="text-xs text-slate-500">No one currently in this voice channel.</p>
+                <span className="text-xs text-[#8696A0] italic">Empty room</span>
               ) : (
-                room.members.map(member => (
-                  <div key={member.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-2 py-2">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={member.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
-                        alt={member.name}
-                        className="h-7 w-7 rounded-lg object-cover"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-white">
-                          {member.name}
-                          {member.isHost && <Crown className="w-3.5 h-3.5 text-yellow-400" />}
-                        </div>
-                        <div className="text-[10px] text-slate-400">{member.isMuted ? 'Muted' : 'Listening'}</div>
-                      </div>
-                    </div>
-
-                    {isRootAdmin && member.id !== userProfile.id && (
-                      <button
-                        onClick={() => kickMember(member.id)}
-                        className="rounded-lg border border-rose-700 bg-rose-950/30 px-2 py-1 text-[10px] font-bold text-rose-200"
-                      >
-                        Kick
+                room.members.map((member) => (
+                  <div key={member.id} className="relative group flex items-center gap-1.5 rounded-full border border-[#2A3942] bg-[#111B21] px-2 py-1">
+                    <img src={member.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'} alt={member.name} className="w-4 h-4 rounded-full object-cover" />
+                    <span className="text-xs text-[#E9EDEF]">{member.name.split(' ')[0]}</span>
+                    {member.isMuted ? <MicOff className="w-3 h-3 text-[#8696A0]" /> : <Mic className="w-3 h-3 text-[#00A884]" />}
+                    {isRootAdmin && activeRoomId === room.id && member.id !== userProfile.id && (
+                      <button onClick={() => kickMember(member.id)} className="ml-1 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300">
+                        <PhoneOff className="w-3 h-3" />
                       </button>
                     )}
                   </div>
                 ))
               )}
             </div>
+
+            <div className="flex gap-2">
+              {activeRoomId === room.id ? (
+                <>
+                  <button onClick={toggleMute} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    isMicOn ? 'bg-[#2A3942] text-[#E9EDEF] hover:bg-[#2A3942]/80' : 'bg-red-900/40 text-red-400 hover:bg-red-900/60'
+                  }`}>
+                    {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                    {isMicOn ? 'Mute Mic' : 'Unmute Mic'}
+                  </button>
+                  <button onClick={leaveRoom} className="flex-1 flex items-center justify-center gap-2 bg-red-600/10 text-red-400 border border-red-900/50 hover:bg-red-600/20 py-2 rounded-lg text-sm font-semibold transition-colors">
+                    <PhoneOff className="w-4 h-4" /> Disconnect
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => joinRoom(room.id)} disabled={activeRoomId !== null} className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  activeRoomId !== null ? 'opacity-50 cursor-not-allowed bg-[#2A3942] text-[#8696A0]' : 'bg-[#00A884] text-white hover:bg-[#06CF9C]'
+                }`}>
+                  <Radio className="w-4 h-4" /> Join Room
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-300">
-        <div className="flex items-center gap-2">
-          {activeRoomId ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-slate-500" />}
-          <span>{statusMessage}</span>
-        </div>
-
-        {activeRoomId && (
-          <button
-            onClick={leaveRoom}
-            className="rounded-xl border border-rose-700 bg-rose-950/40 px-3 py-1.5 font-bold text-rose-200"
-          >
-            Disconnect
-          </button>
-        )}
+      <div id="audio-container" className="hidden">
+        {activeRoomUsers.filter(u => u.id !== userProfile.id).map(user => (
+          <audio key={user.id} id={`voice-audio-${user.id}`} autoPlay playsInline />
+        ))}
       </div>
     </div>
   );

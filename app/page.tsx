@@ -931,9 +931,9 @@ export default function Home() {
   const currentFamily = organizations.find((o) => o.id === userProfile?.currentFamilyId);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
+    <div className="min-h-screen flex flex-col bg-[#111B21] font-sans text-[#E9EDEF] selection:bg-[#00A884] selection:text-white">
       
-      {/* Role Selection Onboarding Modal (Only for non-Root Admin users who have Unassigned accountType) */}
+      {/* Role Selection Onboarding Modal */}
       {needsRoleOnboarding && (
         <RoleOnboardingModal onSelectRole={handleSelectRole} />
       )}
@@ -957,46 +957,46 @@ export default function Home() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Quick Stats Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
-            <div className="p-3 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
-              <Users className="w-6 h-6" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#1F2C34] p-5 rounded-xl border border-[#2A3942] flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-[#00A884]/10 text-[#00A884]">
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Roster</p>
-              <h4 className="text-2xl font-black text-white">{visibleMembers.length} Members</h4>
+              <p className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Total Roster</p>
+              <h4 className="text-xl font-bold text-[#E9EDEF]">{visibleMembers.length} Members</h4>
             </div>
           </div>
 
-          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
-            <div className="p-3 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
-              <Calendar className="w-6 h-6" />
+          <div className="bg-[#1F2C34] p-5 rounded-xl border border-[#2A3942] flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-[#00A884]/10 text-[#00A884]">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Scheduled Convoys</p>
-              <h4 className="text-2xl font-black text-white">{events.length} Events</h4>
+              <p className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Scheduled</p>
+              <h4 className="text-xl font-bold text-[#E9EDEF]">{events.length} Events</h4>
             </div>
           </div>
 
-          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
-            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
-              <Zap className="w-6 h-6" />
+          <div className="bg-[#1F2C34] p-5 rounded-xl border border-[#2A3942] flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-[#00A884]/10 text-[#00A884]">
+              <Zap className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Leaders</p>
-              <h4 className="text-2xl font-black text-yellow-400">
+              <p className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Active Leaders</p>
+              <h4 className="text-xl font-bold text-[#E9EDEF]">
                 {visibleMembers.filter((m) => m.rank === 'Leader' || m.rank === 'High Command').length} HC
               </h4>
             </div>
           </div>
 
-          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
-            <div className="p-3 rounded-2xl bg-rose-950/50 text-rose-400 border border-rose-800">
-              <AlertTriangle className="w-6 h-6" />
+          <div className="bg-[#1F2C34] p-5 rounded-xl border border-[#2A3942] flex items-center space-x-4">
+            <div className="p-3 rounded-full bg-red-500/10 text-red-400">
+              <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Strikes Issued</p>
-              <h4 className="text-2xl font-black text-rose-400">
+              <p className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Strikes Issued</p>
+              <h4 className="text-xl font-bold text-[#E9EDEF]">
                 {visibleMembers.reduce((acc, m) => acc + m.strikes, 0)} Total
               </h4>
             </div>
@@ -1016,18 +1016,18 @@ export default function Home() {
               onDeleteMember={handleDeleteMember}
             />
           ) : (
-            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
-              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
-                <Users className="w-8 h-8 text-yellow-400" />
+            <div className="p-8 sm:p-12 rounded-xl bg-[#1F2C34] border border-[#2A3942] text-center space-y-4 max-w-xl mx-auto">
+              <div className="w-16 h-16 rounded-full bg-[#00A884]/10 text-[#00A884] flex items-center justify-center mx-auto">
+                <Users className="w-8 h-8" />
               </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">No Family Joined Yet</h3>
-              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+              <h3 className="text-xl font-bold text-[#E9EDEF]">No Family Joined Yet</h3>
+              <p className="text-[#8696A0] text-sm leading-relaxed">
                 You have created a Member Account, but you are not assigned to any RP Family yet. Submit an application to an official family to unlock your squad roster.
               </p>
-              <div className="pt-2">
+              <div className="pt-4">
                 <button
                   onClick={() => setShowJoinModal(true)}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#00A884] hover:bg-[#06CF9C] text-white font-semibold text-sm transition-colors"
                 >
                   Apply to Join a Family
                 </button>
@@ -1046,18 +1046,18 @@ export default function Home() {
               onCreateEvent={handleCreateEvent}
             />
           ) : (
-            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
-              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
-                <Calendar className="w-8 h-8 text-yellow-400" />
+            <div className="p-8 sm:p-12 rounded-xl bg-[#1F2C34] border border-[#2A3942] text-center space-y-4 max-w-xl mx-auto">
+              <div className="w-16 h-16 rounded-full bg-[#00A884]/10 text-[#00A884] flex items-center justify-center mx-auto">
+                <Calendar className="w-8 h-8" />
               </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Convoy Patrols Locked</h3>
-              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+              <h3 className="text-xl font-bold text-[#E9EDEF]">Convoy Patrols Locked</h3>
+              <p className="text-[#8696A0] text-sm leading-relaxed">
                 Claiming convoy patrol slots and escort roles is reserved for active family squad members. Apply to join an official family squad to participate.
               </p>
-              <div className="pt-2">
+              <div className="pt-4">
                 <button
                   onClick={() => setShowJoinModal(true)}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#00A884] hover:bg-[#06CF9C] text-white font-semibold text-sm transition-colors"
                 >
                   Apply to Join a Family
                 </button>
@@ -1073,18 +1073,18 @@ export default function Home() {
               <LiveSquadChat userProfile={userProfile} organizations={organizations} members={members} />
             </>
           ) : (
-            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
-              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
-                <Shield className="w-8 h-8 text-yellow-400" />
+            <div className="p-8 sm:p-12 rounded-xl bg-[#1F2C34] border border-[#2A3942] text-center space-y-4 max-w-xl mx-auto">
+              <div className="w-16 h-16 rounded-full bg-[#00A884]/10 text-[#00A884] flex items-center justify-center mx-auto">
+                <Shield className="w-8 h-8" />
               </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Family Membership Required</h3>
-              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+              <h3 className="text-xl font-bold text-[#E9EDEF]">Family Membership Required</h3>
+              <p className="text-[#8696A0] text-sm leading-relaxed">
                 As a Member Account, tactical comms (live chat & squad voice channels) are locked until your application is accepted by an official RP Family Leader.
               </p>
-              <div className="pt-2">
+              <div className="pt-4">
                 <button
                   onClick={() => setShowJoinModal(true)}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                  className="px-6 py-2.5 rounded-full bg-[#00A884] hover:bg-[#06CF9C] text-white font-semibold text-sm transition-colors"
                 >
                   Apply to Join a Family
                 </button>
@@ -1136,14 +1136,14 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-[#06070a] py-8 text-center text-xs text-slate-500 font-mono">
+      <footer className="bg-[#1F2C34] py-6 text-center text-xs text-[#8696A0] border-t border-[#2A3942]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-yellow-400" />
-            <span className="font-bold text-slate-200">BHRP CORE Tactical Gaming Edition</span>
+            <Shield className="w-4 h-4 text-[#00A884]" />
+            <span className="font-bold text-[#E9EDEF]">BHRP Core</span>
             <span>• Royal Kingdom Gaming</span>
           </div>
-          <p className="text-yellow-500/80">Logged in Root Admin: basharat81253@gmail.com</p>
+          {isRootAdmin && <p className="text-[#00A884]">Logged in as Root Admin: basharat81253@gmail.com</p>}
         </div>
       </footer>
 

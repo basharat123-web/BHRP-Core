@@ -1,9 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
-import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, PlusCircle, Sparkles, MessageSquare, Radio, Bell } from 'lucide-react';
+import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, MessageSquare, Radio, Bell, PlusCircle } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { LiveViewersBadge } from '@/components/LiveViewersBadge';
 import { UserProfile } from '@/lib/types';
 
 interface NavbarProps {
@@ -21,354 +20,142 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  activeTab,
-  setActiveTab,
-  memberCount,
-  upcomingEventCount,
-  viewerCount,
-  pendingAppsCount,
-  unreadNotifications = 0,
-  userProfile,
-  onOpenJoinModal,
-  onGoogleSignIn,
-  onSignOut,
+  activeTab, setActiveTab, memberCount, upcomingEventCount,
+  pendingAppsCount, unreadNotifications = 0, userProfile,
+  onOpenJoinModal, onGoogleSignIn, onSignOut,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const isRootAdmin = userProfile?.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile?.isRootAdmin;
   const isLeader = userProfile?.accountType === 'Family Leader' || isRootAdmin;
   const canAccessComms = isRootAdmin || isLeader || (userProfile?.accountType === 'Member' && Boolean(userProfile?.currentFamilyId));
 
+  const navBtn = (tab: typeof activeTab, label: string, Icon: any, badge?: number | string) => (
+    <button
+      onClick={() => setActiveTab(tab)}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+        activeTab === tab
+          ? 'bg-[#00A884]/15 text-[#00A884]'
+          : 'text-[#8696A0] hover:text-[#E9EDEF] hover:bg-[#2A3942]'
+      }`}
+    >
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+      {badge !== undefined && Number(badge) > 0 && (
+        <span className="ml-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#00A884] text-white text-[10px] font-bold">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+
+  const mobileNavBtn = (tab: typeof activeTab, label: string, Icon: any, badge?: number) => (
+    <button
+      onClick={() => { setActiveTab(tab); setMobileMenuOpen(false); }}
+      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+        activeTab === tab ? 'bg-[#00A884]/15 text-[#00A884]' : 'text-[#8696A0] hover:bg-[#2A3942] hover:text-[#E9EDEF]'
+      }`}
+    >
+      <div className="flex items-center gap-3"><Icon className="w-4 h-4" /><span>{label}</span></div>
+      {badge !== undefined && badge > 0 && (
+        <span className="min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full bg-[#00A884] text-white text-[10px] font-bold">{badge}</span>
+      )}
+    </button>
+  );
+
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-[#090a0f]/90 border-b border-yellow-500/30 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+    <header className="sticky top-0 z-40 w-full bg-[#1F2C34] border-b border-[#2A3942]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          
-          {/* Brand Logo & Name */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('roster')}>
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 p-0.5 shadow-[0_0_20px_rgba(250,204,21,0.3)]">
-              <div className="w-full h-full bg-[#0b0c10] rounded-[10px] flex items-center justify-center">
-                <Shield className="w-6 h-6 text-yellow-400" />
-              </div>
+        <div className="flex items-center justify-between h-16">
+
+          {/* Brand */}
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('roster')}>
+            <div className="w-9 h-9 rounded-full bg-[#00A884] flex items-center justify-center flex-shrink-0">
+              <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-yellow-400">
-                  BHRP CORE
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 font-black">
-                  GAMER EDITION
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono hidden sm:block">Tactical Gaming Squad & Convoy Hub</p>
+              <p className="text-[#E9EDEF] font-semibold text-sm leading-tight">BHRP Core</p>
+              <p className="text-[#8696A0] text-[11px]">Family Dashboard</p>
             </div>
           </div>
 
-          {/* Live Viewers Badge */}
-          <div className="hidden lg:flex items-center">
-            <LiveViewersBadge count={viewerCount} />
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-1.5 bg-[#12141c] p-1.5 rounded-2xl border border-yellow-500/20">
-            {/* Show standard squad tabs ONLY for non-Root Admin users */}
-            {!isRootAdmin && (
-              <>
-                <button
-                  onClick={() => setActiveTab('roster')}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'roster'
-                      ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Family Roster</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-900 text-slate-200 font-mono font-bold">
-                    {memberCount}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('events')}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'events'
-                      ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                  }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Convoy Patrols</span>
-                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-yellow-500/20 text-yellow-400 font-mono font-bold">
-                    {upcomingEventCount}
-                  </span>
-                </button>
-              </>
-            )}
-
-            {/* Tactical Comms for regular members */}
-            {userProfile && canAccessComms && !isRootAdmin && (
-              <button
-                onClick={() => setActiveTab('chat')}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'chat'
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <Radio className="w-4 h-4 text-yellow-400 animate-pulse" />
-                <span>Tactical Comms</span>
-              </button>
-            )}
-
-            {/* Applications tab for Family Leaders (not Root Admin) */}
-            {userProfile?.accountType === 'Family Leader' && !isRootAdmin && (
-              <button
-                onClick={() => setActiveTab('applications')}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'applications'
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <UserCheck className="w-4 h-4 text-yellow-400" />
-                <span>Applications</span>
-                {pendingAppsCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-600 text-white font-mono font-bold">
-                    {pendingAppsCount}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Unique Root Admin Navigation Tabs */}
-            {isRootAdmin && (
-              <>
-                <button
-                  onClick={() => setActiveTab('admin')}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'admin'
-                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/40'
-                      : 'text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
-                  }`}
-                >
-                  <Crown className="w-4 h-4 animate-bounce text-yellow-400" />
-                  <span>ROOT ADMIN CONSOLE</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('chat')}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === 'chat'
-                      ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-400 text-slate-950 shadow-lg shadow-yellow-500/40'
-                      : 'text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30'
-                  }`}
-                >
-                  <Radio className="w-4 h-4 text-yellow-400 animate-pulse" />
-                  <span>ROOT COMMAND DIRECT CHAT</span>
-                </button>
-              </>
-            )}
-
-            {userProfile && (
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeTab === 'profile'
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 shadow-md shadow-yellow-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-                }`}
-              >
-                <User className="w-4 h-4 text-yellow-400" />
-                <span>My Profile</span>
-              </button>
-            )}
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-1">
+            {!isRootAdmin && navBtn('roster', 'Family Roster', Users, memberCount)}
+            {!isRootAdmin && navBtn('events', 'Convoy Patrols', Calendar, upcomingEventCount)}
+            {userProfile && canAccessComms && !isRootAdmin && navBtn('chat', 'Tactical Comms', MessageSquare)}
+            {userProfile?.accountType === 'Family Leader' && !isRootAdmin && navBtn('applications', 'Applications', UserCheck, pendingAppsCount)}
+            {isRootAdmin && navBtn('admin', 'Admin Console', Crown)}
+            {isRootAdmin && navBtn('chat', 'Direct Chat', Radio)}
+            {userProfile && navBtn('profile', 'My Profile', User)}
           </nav>
 
-          {/* User Auth Controls */}
-          <div className="hidden sm:flex items-center space-x-3">
+          {/* User Controls */}
+          <div className="hidden sm:flex items-center gap-2">
             {userProfile ? (
-              <div className="flex items-center space-x-3">
-                {/* Apply Family Button for unassigned members */}
+              <>
                 {userProfile.accountType === 'Member' && !userProfile.currentFamilyId && (
-                  <button
-                    onClick={onOpenJoinModal}
-                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/20 transition-all text-xs font-mono font-bold"
-                  >
+                  <button onClick={onOpenJoinModal} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2A3942] text-[#8696A0] hover:text-[#E9EDEF] hover:border-[#00A884] text-xs font-medium transition-colors">
                     <PlusCircle className="w-3.5 h-3.5" />
-                    <span>Apply to Family</span>
+                    <span>Join Family</span>
                   </button>
                 )}
 
-                {/* Notification Bell */}
-                <button
-                  onClick={() => setActiveTab('chat')}
-                  className="relative p-2 rounded-xl bg-[#12141c] border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-all"
-                >
+                <button onClick={() => setActiveTab('chat')} className="relative p-2 rounded-lg text-[#8696A0] hover:text-[#E9EDEF] hover:bg-[#2A3942] transition-colors">
                   <Bell className="w-5 h-5" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white shadow-lg animate-pulse">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#00A884] text-[9px] font-bold text-white">
                       {unreadNotifications > 9 ? '9+' : unreadNotifications}
                     </span>
                   )}
                 </button>
 
-                <button
-                  onClick={() => setActiveTab('profile')}
-                  className="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-[#12141c] border border-yellow-500/30 hover:border-yellow-400 transition-all"
-                >
+                <button onClick={() => setActiveTab('profile')} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[#2A3942] transition-colors">
                   <img
                     src={userProfile.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
                     alt={userProfile.fullName}
-                    className="w-7 h-7 rounded-full object-cover border border-yellow-400"
+                    className="w-7 h-7 rounded-full object-cover"
                   />
-                  <div className="text-left text-xs">
-                    <p className="font-extrabold text-white leading-tight">{userProfile.fullName.split(' ')[0]}</p>
-                    <p className="text-[10px] text-yellow-400 font-mono font-bold">{userProfile.accountType}</p>
+                  <div className="text-left">
+                    <p className="text-[#E9EDEF] text-xs font-semibold leading-tight">{userProfile.fullName.split(' ')[0]}</p>
+                    <p className="text-[#8696A0] text-[10px]">{userProfile.accountType}</p>
                   </div>
                 </button>
 
-                <button
-                  onClick={onSignOut}
-                  title="Sign Out"
-                  className="p-2 rounded-xl bg-[#12141c] border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-900 transition-all"
-                >
+                <button onClick={onSignOut} title="Sign Out" className="p-2 rounded-lg text-[#8696A0] hover:text-red-400 hover:bg-[#2A3942] transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
-              </div>
+              </>
             ) : (
-              <button
-                onClick={onGoogleSignIn}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-yellow-500/20 cursor-pointer"
-              >
+              <button onClick={onGoogleSignIn} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#00A884] hover:bg-[#06CF9C] text-white text-sm font-semibold transition-colors">
                 <LogIn className="w-4 h-4" />
-                <span>Google Sign In</span>
+                <span>Sign In</span>
               </button>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center space-x-2">
-            <LiveViewersBadge count={viewerCount} compact />
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg bg-[#12141c] border border-slate-800 text-slate-300 hover:text-white"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
+          {/* Mobile toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg text-[#8696A0] hover:bg-[#2A3942] transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-800 bg-[#0b0c10] px-4 pt-3 pb-5 space-y-2 font-mono">
-          {!isRootAdmin && (
-            <>
-              <button
-                onClick={() => { setActiveTab('roster'); setMobileMenuOpen(false); }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-                  activeTab === 'roster' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Users className="w-4 h-4" />
-                  <span>Family Roster</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-900 text-slate-200">{memberCount}</span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('events'); setMobileMenuOpen(false); }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-                  activeTab === 'events' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Calendar className="w-4 h-4" />
-                  <span>Convoy Patrols</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">{upcomingEventCount}</span>
-              </button>
-            </>
-          )}
-
-          {userProfile && canAccessComms && !isRootAdmin && (
-            <button
-              onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-                activeTab === 'chat' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <Radio className="w-4 h-4 text-yellow-400" />
-                <span>Tactical Comms (Chat & Voice)</span>
-              </div>
-            </button>
-          )}
-
-          {userProfile?.accountType === 'Family Leader' && !isRootAdmin && (
-            <button
-              onClick={() => { setActiveTab('applications'); setMobileMenuOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-                activeTab === 'applications' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <UserCheck className="w-4 h-4 text-yellow-400" />
-                <span>Applications</span>
-              </div>
-              {pendingAppsCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold">{pendingAppsCount}</span>
-              )}
-            </button>
-          )}
-
-          {isRootAdmin && (
-            <>
-              <button
-                onClick={() => { setActiveTab('admin'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950"
-              >
-                <div className="flex items-center space-x-3">
-                  <Crown className="w-4 h-4" />
-                  <span>ROOT ADMIN PANEL</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('chat'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold bg-yellow-500/20 border border-yellow-500/40 text-yellow-400"
-              >
-                <div className="flex items-center space-x-3">
-                  <Radio className="w-4 h-4 text-yellow-400" />
-                  <span>ROOT COMMAND DIRECT CHAT</span>
-                </div>
-              </button>
-            </>
-          )}
-
-          {userProfile ? (
-            <button
-              onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold ${
-                activeTab === 'profile' ? 'bg-yellow-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <User className="w-4 h-4 text-yellow-400" />
-                <span>My Profile</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-900 text-yellow-400">{userProfile.accountType}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => { onGoogleSignIn(); setMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-yellow-500 text-slate-950 font-black text-xs uppercase mt-2"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Google Sign In</span>
+        <div className="md:hidden border-t border-[#2A3942] bg-[#1F2C34] px-4 py-3 space-y-1">
+          {!isRootAdmin && mobileNavBtn('roster', 'Family Roster', Users, memberCount)}
+          {!isRootAdmin && mobileNavBtn('events', 'Convoy Patrols', Calendar, upcomingEventCount)}
+          {userProfile && canAccessComms && !isRootAdmin && mobileNavBtn('chat', 'Tactical Comms', MessageSquare)}
+          {userProfile?.accountType === 'Family Leader' && !isRootAdmin && mobileNavBtn('applications', 'Applications', UserCheck, pendingAppsCount)}
+          {isRootAdmin && mobileNavBtn('admin', 'Admin Console', Crown)}
+          {isRootAdmin && mobileNavBtn('chat', 'Direct Chat', Radio)}
+          {userProfile && mobileNavBtn('profile', 'My Profile', User)}
+          {!userProfile && (
+            <button onClick={() => { onGoogleSignIn(); setMobileMenuOpen(false); }} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#00A884] text-white text-sm font-semibold mt-2">
+              <LogIn className="w-4 h-4" /><span>Sign In with Google</span>
             </button>
           )}
         </div>

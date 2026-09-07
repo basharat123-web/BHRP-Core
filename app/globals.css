@@ -3,32 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0d14;
-  --foreground: #f8fafc;
+  /* WhatsApp-style dark palette */
+  --bg-primary:    #111B21;
+  --bg-panel:      #1F2C34;
+  --bg-card:       #233138;
+  --bg-input:      #2A3942;
+  --accent:        #00A884;
+  --accent-hover:  #06CF9C;
+  --text-primary:  #E9EDEF;
+  --text-secondary:#8696A0;
+  --border:        #2A3942;
+  --bubble-out:    #005C4B;
+  --bubble-in:     #202C33;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--text-primary);
+  background: var(--bg-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar */
+/* Scrollbar — thin and minimal */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #0a0d14;
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+/* Smooth transitions globally */
+button, input, textarea, select {
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }

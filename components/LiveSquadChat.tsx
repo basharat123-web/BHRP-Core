@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, Organization, Member } from '@/lib/types';
@@ -217,244 +217,193 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
   };
 
   const filteredMembers = allProfiles.filter(m => m.fullName.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  // Active User or Root Info for Header
   const activeRecipient = allProfiles.find(p => p.id === selectedRecipientId);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 font-sans">
+    <div className="flex h-[700px] rounded-xl overflow-hidden border border-[#2A3942] bg-[#111B21]">
       
-      {/* Sidebar Navigation */}
-      <div className="lg:col-span-1 bg-[#0b0c10] border-2 border-yellow-500/30 rounded-3xl p-4 shadow-2xl flex flex-col gap-2">
-        <h3 className="text-yellow-400 font-black text-sm uppercase mb-2 px-2 flex items-center gap-2">
-          <Radio className="w-4 h-4 animate-pulse" /> Comms Network
-        </h3>
-        
-        <button
-          onClick={() => setActiveTab('global')}
-          className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-            activeTab === 'global' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-bold shadow-lg shadow-yellow-500/20' : 'bg-[#12141c] border border-slate-800 text-slate-300 hover:border-yellow-500/50'
-          }`}
-        >
-          <div className="flex items-center gap-2"><MessageSquare className="w-4 h-4" /> Global Broadcast</div>
-          {activeTab === 'global' && <ChevronRight className="w-4 h-4" />}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('announcement')}
-          className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-            activeTab === 'announcement' ? 'bg-gradient-to-r from-rose-600 to-red-700 text-white font-bold shadow-lg shadow-rose-600/20' : 'bg-[#12141c] border border-slate-800 text-slate-300 hover:border-rose-500/50'
-          }`}
-        >
-          <div className="flex items-center gap-2"><Megaphone className="w-4 h-4" /> Announcements</div>
-          {activeTab === 'announcement' && <ChevronRight className="w-4 h-4" />}
-        </button>
-
-        {canAccessFamily && (
-          <button
-            onClick={() => setActiveTab('family')}
-            className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-              activeTab === 'family' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-bold shadow-lg shadow-yellow-500/20' : 'bg-[#12141c] border border-slate-800 text-slate-300 hover:border-yellow-500/50'
-            }`}
-          >
-            <div className="flex items-center gap-2"><Users className="w-4 h-4" /> Family Tactical</div>
-            {activeTab === 'family' && <ChevronRight className="w-4 h-4" />}
-          </button>
-        )}
-
-        <button
-          onClick={() => setActiveTab('direct')}
-          className={`w-full text-left flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-            activeTab === 'direct' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-bold shadow-lg shadow-yellow-500/20' : 'bg-[#12141c] border border-slate-800 text-slate-300 hover:border-yellow-500/50'
-          }`}
-        >
-          <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Direct Dispatches</div>
-          {activeTab === 'direct' && <ChevronRight className="w-4 h-4" />}
-        </button>
+      {/* Sidebar */}
+      <div className="w-64 flex-shrink-0 bg-[#1F2C34] border-r border-[#2A3942] flex flex-col">
+        <div className="px-4 py-3 border-b border-[#2A3942]">
+          <p className="text-[#E9EDEF] font-semibold text-sm">Comms Network</p>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {[{ id: 'global', label: 'Global Broadcast', Icon: MessageSquare },
+            { id: 'announcement', label: 'Announcements', Icon: Megaphone },
+            ...(canAccessFamily ? [{ id: 'family', label: 'Family Tactical', Icon: Users }] : []),
+            { id: 'direct', label: 'Direct Dispatches', Icon: Shield },
+          ].map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id as any)}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${
+                activeTab === id
+                  ? 'bg-[#2A3942] text-[#E9EDEF]'
+                  : 'text-[#8696A0] hover:bg-[#2A3942]/60 hover:text-[#E9EDEF]'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                activeTab === id ? 'bg-[#00A884]' : 'bg-[#2A3942]'
+              }`}>
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{label}</p>
+                {activeTab === id && (
+                  <p className="text-[11px] text-[#8696A0] truncate">Active</p>
+                )}
+              </div>
+              {activeTab === id && <div className="ml-auto w-1 h-8 rounded-full bg-[#00A884]" />}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="lg:col-span-3 bg-[#0b0c10] border-2 border-yellow-500/30 rounded-3xl p-6 flex flex-col justify-between h-[700px] shadow-2xl relative overflow-hidden">
-        
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-3">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2.5 rounded-xl border ${activeTab === 'announcement' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
-              {activeTab === 'global' && <MessageSquare className="w-5 h-5" />}
-              {activeTab === 'announcement' && <AlertCircle className="w-5 h-5 animate-pulse" />}
-              {activeTab === 'family' && <Users className="w-5 h-5" />}
-              {activeTab === 'direct' && <Crown className="w-5 h-5 text-yellow-400 animate-pulse" />}
-            </div>
-            <div>
-              <h2 className={`text-lg font-black uppercase flex items-center gap-2 ${activeTab === 'announcement' ? 'text-rose-400' : 'text-white'}`}>
-                {activeTab === 'global' && <span>Global City Broadcast</span>}
-                {activeTab === 'announcement' && <span>Official Announcements</span>}
-                {activeTab === 'family' && <span>Encrypted Family Tactical</span>}
-                {activeTab === 'direct' && <span>Secure Direct Dispatch {activeRecipient && `> ${activeRecipient.fullName}`}</span>}
-                <span className={`text-xs px-2.5 py-0.5 rounded-full border font-mono font-bold flex items-center gap-1 ${activeTab === 'announcement' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'}`}>
-                  <span className={`w-2 h-2 rounded-full animate-ping ${activeTab === 'announcement' ? 'bg-rose-400' : 'bg-yellow-400'}`} /> LIVE
-                </span>
-              </h2>
-            </div>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Chat Header */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-[#1F2C34] border-b border-[#2A3942]">
+          <div className="w-9 h-9 rounded-full bg-[#2A3942] flex items-center justify-center">
+            {activeTab === 'global' && <MessageSquare className="w-4 h-4 text-[#8696A0]" />}
+            {activeTab === 'announcement' && <Megaphone className="w-4 h-4 text-[#8696A0]" />}
+            {activeTab === 'family' && <Users className="w-4 h-4 text-[#8696A0]" />}
+            {activeTab === 'direct' && <Shield className="w-4 h-4 text-[#8696A0]" />}
+          </div>
+          <div>
+            <p className="text-[#E9EDEF] text-sm font-semibold">
+              {activeTab === 'global' && 'Global Broadcast'}
+              {activeTab === 'announcement' && 'Announcements'}
+              {activeTab === 'family' && 'Family Tactical'}
+              {activeTab === 'direct' && (activeRecipient ? `${activeRecipient.fullName}` : 'Direct Dispatches')}
+            </p>
+            <p className="text-[#8696A0] text-[11px] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00A884] inline-block" /> Live
+            </p>
           </div>
         </div>
 
-        {/* Send Error Banner */}
+        {/* Error */}
         {sendError && (
-          <div className="mb-3 px-4 py-2.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-400 text-xs font-mono flex items-center gap-2">
+          <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-red-900/30 border border-red-800/50 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{sendError}</span>
-            <button onClick={() => setSendError(null)} className="ml-auto text-rose-500 hover:text-rose-300">✕</button>
+            <button onClick={() => setSendError(null)} className="ml-auto">✕</button>
           </div>
         )}
 
-        {/* Content Area */}
+        {/* Content */}
         {activeTab === 'direct' && isRootAdmin ? (
-          <div className="flex-1 flex flex-col lg:flex-row gap-4 h-full overflow-hidden pb-4">
-             {/* Admin Search Bar / Contact List */}
-             <div className="w-full lg:w-1/3 flex flex-col border border-slate-800 rounded-2xl bg-[#090a0f] p-3">
-               <div className="flex items-center bg-[#12141c] border border-slate-800 rounded-lg px-3 py-2 mb-3">
-                 <Search className="w-4 h-4 text-slate-400 mr-2" />
-                 <input 
-                   type="text" 
-                   placeholder="Search members..." 
-                   value={searchQuery}
-                   onChange={e => setSearchQuery(e.target.value)}
-                   className="bg-transparent border-none outline-none text-sm text-white w-full font-mono"
-                 />
-               </div>
-               <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-                  {filteredMembers.map((m: any) => (
-                    <div 
-                      key={m.id} 
-                      onClick={() => { setSelectedRecipientId(m.id); }}
-                      className={`p-3 cursor-pointer rounded-xl text-xs font-bold border transition-all ${
-                        selectedRecipientId === m.id 
-                        ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' 
-                        : 'bg-[#12141c] border-slate-800 text-slate-300 hover:border-yellow-500/30 hover:bg-yellow-500/5'
-                      }`}
-                    >
-                       <div className="flex flex-col">
-                         <span className="text-sm">{m.fullName}</span>
-                         <span className="text-[10px] text-slate-500 font-mono mt-0.5">[{m.ingameId}]</span>
-                       </div>
+          <div className="flex-1 flex overflow-hidden">
+            {/* Contact list */}
+            <div className="w-56 flex-shrink-0 border-r border-[#2A3942] flex flex-col">
+              <div className="px-3 py-2">
+                <div className="flex items-center bg-[#2A3942] rounded-lg px-3 py-1.5 gap-2">
+                  <Search className="w-3.5 h-3.5 text-[#8696A0]" />
+                  <input
+                    type="text" placeholder="Search..."
+                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    className="bg-transparent text-[#E9EDEF] text-xs outline-none w-full placeholder:text-[#8696A0]"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {filteredMembers.map((m: any) => (
+                  <button key={m.id} onClick={() => setSelectedRecipientId(m.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                      selectedRecipientId === m.id ? 'bg-[#2A3942]' : 'hover:bg-[#2A3942]/50'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#2A3942] flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-[#8696A0]">{m.fullName[0]}</span>
                     </div>
-                  ))}
-               </div>
-             </div>
-
-             {/* Chat Window */}
-             <div className="w-full lg:w-2/3 flex flex-col border border-slate-800 rounded-2xl bg-[#090a0f] p-3">
-                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 font-mono text-xs">
-                     {messages.length === 0 && <p className="text-slate-500 text-center mt-10 italic">Select a contact to view or start a dispatch.</p>}
-                     {messages.map((msg) => <ChatBubble key={msg.id} msg={msg} isMe={msg.userId === userProfile.id} />)}
-                     <div ref={chatEndRef} />
-                 </div>
-                 <form onSubmit={handleSendMessage} className="mt-2 pt-2 border-t border-slate-800 flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder={selectedRecipientId ? "Type secure dispatch..." : "Select a recipient first..."}
-                      disabled={!selectedRecipientId}
-                      className="flex-1 bg-slate-900 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500/50 disabled:opacity-50 transition"
-                    />
-                    <button type="submit" disabled={!selectedRecipientId} className="p-3 rounded-xl bg-yellow-500 text-slate-950 hover:bg-yellow-400 disabled:opacity-50 transition">
-                      <Send className="w-5 h-5" />
-                    </button>
-                 </form>
-             </div>
+                    <div className="min-w-0">
+                      <p className="text-[#E9EDEF] text-xs font-medium truncate">{m.fullName}</p>
+                      <p className="text-[#8696A0] text-[10px]">{m.ingameId}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* DM window */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex-1 overflow-y-auto p-4 space-y-2" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #1F2C34 1px, transparent 0)', backgroundSize: '20px 20px' }}>
+                {messages.length === 0 && <p className="text-[#8696A0] text-xs text-center mt-10">Select a contact to start a conversation.</p>}
+                {messages.map(msg => <ChatBubble key={msg.id} msg={msg} isMe={msg.userId === userProfile.id} />)}
+                <div ref={chatEndRef} />
+              </div>
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2 px-3 py-2 bg-[#1F2C34] border-t border-[#2A3942]">
+                <input type="text" value={inputText} onChange={e => setInputText(e.target.value)}
+                  placeholder={selectedRecipientId ? 'Type a message' : 'Select a contact first...'}
+                  disabled={!selectedRecipientId}
+                  className="flex-1 bg-[#2A3942] text-[#E9EDEF] placeholder:text-[#8696A0] rounded-lg px-3 py-2 text-sm outline-none disabled:opacity-40"
+                />
+                <button type="submit" disabled={!selectedRecipientId} className="w-9 h-9 rounded-full bg-[#00A884] flex items-center justify-center disabled:opacity-40 hover:bg-[#06CF9C] flex-shrink-0">
+                  <Send className="w-4 h-4 text-white" />
+                </button>
+              </form>
+            </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col h-full overflow-hidden w-full">
-             <div className={`flex-1 overflow-y-auto space-y-4 pr-2 font-mono text-xs pb-4 border rounded-2xl bg-[#090a0f] p-4 ${activeTab === 'announcement' ? 'border-rose-900/50' : 'border-slate-800'}`}>
-                 {messages.length === 0 && <p className="text-slate-500 text-center mt-10 italic">No messages found in this channel.</p>}
-                 {messages.map((msg) => <ChatBubble key={msg.id} msg={msg} isMe={msg.userId === userProfile.id} isAnnouncement={activeTab === 'announcement'} />)}
-                 <div ref={chatEndRef} />
-             </div>
-             
-             {/* Hide input for regular members in announcements tab */}
-             {!(activeTab === 'announcement' && !isRootAdmin) && (
-               <form onSubmit={handleSendMessage} className="mt-4 pt-3 flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder={activeTab === 'announcement' ? "Post official announcement..." : "Broadcast to channel..."}
-                    className={`flex-1 bg-slate-900 border-2 text-white rounded-xl px-4 py-3 text-sm outline-none transition ${activeTab === 'announcement' ? 'border-rose-900/50 focus:border-rose-500/50' : 'border-slate-800 focus:border-yellow-500/50'}`}
-                  />
-                  <button type="submit" className={`p-3 rounded-xl text-white transition ${activeTab === 'announcement' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-yellow-500 text-slate-950 hover:bg-yellow-400'}`}>
-                    {activeTab === 'announcement' ? <Megaphone className="w-5 h-5" /> : <Send className="w-5 h-5" />}
-                  </button>
-               </form>
-             )}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 space-y-1" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #1F2C34 1px, transparent 0)', backgroundSize: '20px 20px' }}>
+              {messages.length === 0 && <p className="text-[#8696A0] text-xs text-center mt-10">No messages yet.</p>}
+              {messages.map(msg => <ChatBubble key={msg.id} msg={msg} isMe={msg.userId === userProfile.id} isAnnouncement={activeTab === 'announcement'} />)}
+              <div ref={chatEndRef} />
+            </div>
+
+            {!(activeTab === 'announcement' && !isRootAdmin) && (
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2 px-3 py-2 bg-[#1F2C34] border-t border-[#2A3942]">
+                <input type="text" value={inputText} onChange={e => setInputText(e.target.value)}
+                  placeholder={activeTab === 'announcement' ? 'Write an announcement...' : 'Type a message'}
+                  className="flex-1 bg-[#2A3942] text-[#E9EDEF] placeholder:text-[#8696A0] rounded-lg px-3 py-2 text-sm outline-none"
+                />
+                <button type="submit" className="w-9 h-9 rounded-full bg-[#00A884] flex items-center justify-center hover:bg-[#06CF9C] flex-shrink-0">
+                  <Send className="w-4 h-4 text-white" />
+                </button>
+              </form>
+            )}
           </div>
         )}
-
       </div>
     </div>
   );
 };
 
-// Subcomponent for chat bubble
+// WhatsApp-style chat bubble
 const ChatBubble = ({ msg, isMe, isAnnouncement = false }: { msg: ChatMessage, isMe: boolean, isAnnouncement?: boolean }) => {
-  const isFamilyLeader = msg.senderRank === 'Leader' || msg.senderName?.toLowerCase().includes('leader');
-  const isRootMsg =
-    !isFamilyLeader && (
-      msg.senderRank === 'Root Admin' ||
-      msg.senderName?.toLowerCase().includes('basharat') ||
-      msg.senderName?.toLowerCase().includes('root')
-    );
+  const isRootMsg = msg.senderRank === 'Root Admin';
+  const isLeader = msg.senderRank === 'Family Leader' || msg.senderRank === 'Leader';
 
   return (
-    <div className={`flex items-start space-x-3 ${isMe && !isAnnouncement ? 'flex-row-reverse space-x-reverse' : ''}`}>
-      <div className="relative flex-shrink-0">
-        <img
-          src={msg.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
-          alt={msg.senderName}
-          className={`w-10 h-10 rounded-xl object-cover border-2 ${
-            isFamilyLeader || isRootMsg ? 'border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.6)]' : 'border-slate-700'
-          }`}
-        />
-        {(isFamilyLeader || isRootMsg) && <Crown className="w-4 h-4 text-yellow-400 absolute -top-2 -right-1 animate-bounce drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />}
-      </div>
+    <div className={`flex items-end gap-2 ${isMe && !isAnnouncement ? 'flex-row-reverse' : ''}`}>
+      {/* Avatar */}
+      <img
+        src={msg.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
+        alt={msg.senderName}
+        className="w-7 h-7 rounded-full object-cover flex-shrink-0 mb-1"
+      />
 
-      <div className={`max-w-[85%] space-y-1 ${isMe && !isAnnouncement ? 'items-end text-right' : ''}`}>
-        <div className="flex items-center flex-wrap gap-2 mb-1">
-          {/* SENDER RANK BADGE - Super Prominent */}
-          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-            isFamilyLeader || isRootMsg
-              ? 'bg-yellow-500 text-slate-950 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]'
-              : msg.senderRank === 'Leader'
-              ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-              : msg.senderRank === 'High Command'
-              ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
-              : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-          }`}>
-            {isFamilyLeader ? 'Family Leader' : isRootMsg ? 'Supreme Root Admin' : msg.senderRank}
-          </span>
-          
-          <span className="font-bold text-white text-sm tracking-wide">{msg.senderName}</span>
+      <div className={`max-w-[72%] ${isMe && !isAnnouncement ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
+        {/* Sender info */}
+        {(!isMe || isAnnouncement) && (
+          <div className="flex items-center gap-1.5 px-1">
+            <span className={`text-[11px] font-semibold ${
+              isRootMsg ? 'text-[#00A884]' : isLeader ? 'text-amber-400' : 'text-[#8696A0]'
+            }`}>{msg.senderName}</span>
+            <span className="text-[10px] text-[#8696A0] bg-[#2A3942] px-1.5 py-0.5 rounded">{msg.senderRank}</span>
+          </div>
+        )}
 
-          <span className="px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400 border border-slate-700">
-            [{msg.ingameId || (isRootMsg ? 'ROOT-01' : 'BH-MEMBER')}]
-          </span>
-          
-          <span className="text-[10px] text-slate-500">{msg.createdAt}</span>
-        </div>
-        
-        <div
-          className={`p-3.5 rounded-2xl text-sm leading-relaxed font-sans shadow-md ${
-            isAnnouncement
-              ? 'bg-gradient-to-r from-rose-950/80 to-slate-900 border-l-4 border-l-rose-500 border-y border-r border-rose-900/30 text-rose-100 font-medium'
-              : isRootMsg
-              ? 'bg-gradient-to-r from-amber-500/20 to-slate-900 border-l-4 border-l-yellow-400 border-y border-r border-yellow-500/20 text-yellow-50 font-medium'
-              : isMe
-              ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-blue-500/20 rounded-tr-sm'
-              : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
-          }`}
-        >
+        {/* Bubble */}
+        <div className={`px-3 py-2 rounded-lg text-sm leading-relaxed relative ${
+          isAnnouncement
+            ? 'bg-[#2A3942] border-l-2 border-[#00A884] text-[#E9EDEF] w-full'
+            : isMe
+            ? 'bg-[#005C4B] text-[#E9EDEF] rounded-br-sm'
+            : 'bg-[#202C33] text-[#E9EDEF] rounded-bl-sm'
+        }`}>
           {msg.text}
+          <span className="ml-2 text-[10px] text-[#8696A0] float-right mt-1">{msg.createdAt}</span>
         </div>
       </div>
     </div>
