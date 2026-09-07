@@ -503,7 +503,11 @@ export const fetchChatMessages = async (
 
     const { data, error } = await query.order('created_at', { ascending: true }).limit(100);
 
-    if (error || !data) return [];
+    if (error) {
+      console.error('[BHRP] fetchChatMessages error:', error.code, error.message, error.details);
+      return [];
+    }
+    if (!data) return [];
     return data.map((msg: any) => ({
       id: msg.id,
       userId: msg.user_id,
@@ -518,6 +522,7 @@ export const fetchChatMessages = async (
       createdAt: msg.created_at,
     }));
   } catch (err) {
+    console.error('[BHRP] fetchChatMessages exception:', err);
     return [];
   }
 };
@@ -546,14 +551,18 @@ export const sendChatMessage = async (
           avatar_url: avatarUrl,
           text,
           message_type: messageType,
-          family_id: familyId,
-          recipient_id: recipientId,
+          family_id: familyId || null,
+          recipient_id: recipientId || null,
         },
       ])
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error('[BHRP] sendChatMessage error:', error.code, error.message, error.details, error.hint);
+      return null;
+    }
+    if (!data) return null;
     return {
       id: data.id,
       userId: data.user_id,
@@ -568,6 +577,7 @@ export const sendChatMessage = async (
       createdAt: data.created_at,
     };
   } catch (err) {
+    console.error('[BHRP] sendChatMessage exception:', err);
     return null;
   }
 };

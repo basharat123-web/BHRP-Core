@@ -15,6 +15,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
   const [activeTab, setActiveTab] = useState<'global' | 'announcement' | 'family' | 'direct'>('global');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const [sendError, setSendError] = useState<string | null>(null);
   
   // Direct Message State
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +77,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload: any) => {
+          console.log('[BHRP] Realtime message received:', payload.new);
           const newMsg = payload.new;
           // Filter dynamically based on current tab state
           if (newMsg.message_type !== activeTab) return;
@@ -101,7 +103,9 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
           setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         }
       )
-      .subscribe();
+      .subscribe((status: string, err?: Error) => {
+        console.log('[BHRP] Realtime subscription status:', status, err || '');
+      });
 
     chatChannelRef.current = channel;
 
@@ -127,6 +131,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
 
     const textPayload = inputText.trim();
     setInputText('');
+    setSendError(null);
     
     if (activeTab === 'direct' && !selectedRecipientId) {
        alert("Please select a recipient first.");
@@ -151,7 +156,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
 
     // Save to DB
-    await sendChatMessage(
+    const saved = await sendChatMessage(
       userProfile.id,
       userProfile.fullName,
       isRootAdmin ? 'Root Admin' : userProfile.accountType,
@@ -162,6 +167,12 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
       activeTab === 'family' ? currentFamilyId : undefined,
       activeTab === 'direct' ? selectedRecipientId || undefined : undefined
     );
+
+    if (!saved) {
+      setSendError('Message send failed. Check console for DB error details.');
+      // Remove optimistic message since it failed
+      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+    }
 
     // Trigger Notification for Direct Messages
     if (activeTab === 'direct' && selectedRecipientId && isRootAdmin) {
@@ -255,6 +266,15 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
             </div>
           </div>
         </div>
+
+        {/* Send Error Banner */}
+        {sendError && (
+          <div className="mb-3 px-4 py-2.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-400 text-xs font-mono flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{sendError}</span>
+            <button onClick={() => setSendError(null)} className="ml-auto text-rose-500 hover:text-rose-300">✕</button>
+          </div>
+        )}
 
         {/* Content Area */}
         {activeTab === 'direct' && isRootAdmin ? (
