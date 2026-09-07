@@ -147,7 +147,7 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
                   </span>
                 </div>
 
-                <div className="pt-2 flex items-center space-x-2">
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                   <button
                     onClick={() => onRespondOrganization(org.id, 'Approved')}
                     className="flex-1 py-2 rounded bg-[#00A884] text-white font-semibold text-xs flex items-center justify-center space-x-1 hover:bg-[#06CF9C] transition-colors"
@@ -324,7 +324,7 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
                   <td className="py-3 px-4 text-[#E9EDEF] font-mono text-xs">{profile.ingameId || 'N/A'}</td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded text-[10px] font-semibold ${
-                      profile.accountType === 'Root Admin' ? 'bg-yellow-500/10 text-[#00A884]' :
+                      profile.accountType === 'Root Admin' ? 'bg-[#00A884]/10 text-[#00A884]' :
                       profile.accountType === 'Family Leader' ? 'bg-[#00A884]/10 text-[#00A884]' :
                       profile.accountType === 'Member' ? 'bg-blue-500/10 text-blue-400' :
                       'bg-[#2A3942] text-[#8696A0]'

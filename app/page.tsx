@@ -957,7 +957,7 @@ export default function Home() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* Quick Stats Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#1F2C34] p-5 rounded-xl border border-[#2A3942] flex items-center space-x-4">
             <div className="p-3 rounded-full bg-[#00A884]/10 text-[#00A884]">
               <Users className="w-5 h-5" />
