@@ -251,6 +251,14 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     if (!supabase) return setError('Supabase must be configured for live voice channels.');
     console.log(`[WebRTC] Attempting to join room ${roomId}...`);
 
+    // Prevent duplicate channel subscription errors
+    leaveRoom();
+    supabase.getChannels().forEach(ch => {
+      if (ch.topic === `realtime:voice-room-${roomId}`) {
+        supabase.removeChannel(ch);
+      }
+    });
+
     try {
       setError(null);
       console.log(`[WebRTC] Requesting microphone access...`);
