@@ -87,19 +87,38 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
              if (selectedRecipientId && !(newMsg.user_id === selectedRecipientId || newMsg.recipient_id === selectedRecipientId)) return;
           }
 
-          setMessages((prev) => [...prev, {
-            id: newMsg.id,
-            userId: newMsg.user_id,
-            senderName: newMsg.sender_name,
-            senderRank: newMsg.sender_rank,
-            ingameId: newMsg.ingame_id,
-            avatarUrl: newMsg.avatar_url,
-            text: newMsg.text,
-            messageType: newMsg.message_type,
-            familyId: newMsg.family_id,
-            recipientId: newMsg.recipient_id,
-            createdAt: new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          }]);
+          const formattedCreatedAt = new Date(newMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          setMessages((prev) => {
+            const isDuplicate = prev.some((msg) =>
+              msg.id === newMsg.id ||
+              (
+                msg.userId === newMsg.user_id &&
+                msg.text === newMsg.text &&
+                msg.senderName === newMsg.sender_name &&
+                msg.messageType === newMsg.message_type &&
+                msg.familyId === newMsg.family_id &&
+                msg.recipientId === newMsg.recipient_id &&
+                msg.createdAt === formattedCreatedAt
+              )
+            );
+
+            if (isDuplicate) return prev;
+
+            return [...prev, {
+              id: newMsg.id,
+              userId: newMsg.user_id,
+              senderName: newMsg.sender_name,
+              senderRank: newMsg.sender_rank,
+              ingameId: newMsg.ingame_id,
+              avatarUrl: newMsg.avatar_url,
+              text: newMsg.text,
+              messageType: newMsg.message_type,
+              familyId: newMsg.family_id,
+              recipientId: newMsg.recipient_id,
+              createdAt: formattedCreatedAt,
+            }];
+          });
           setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         }
       )
@@ -172,7 +191,18 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
       setSendError('Message send failed. Check console for DB error details.');
       // Remove optimistic message since it failed
       setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      return;
     }
+
+    setMessages((prev) => prev.map((msg) =>
+      msg.id === tempMsg.id
+        ? {
+            ...msg,
+            id: saved.id,
+            createdAt: new Date(saved.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }
+        : msg
+    ));
 
     // Trigger Notification for Direct Messages
     if (activeTab === 'direct' && selectedRecipientId && isRootAdmin) {
