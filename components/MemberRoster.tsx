@@ -6,6 +6,7 @@ import { Member, MemberRank, MemberStatus } from '@/lib/types';
 
 interface MemberRosterProps {
   members: Member[];
+  canEdit?: boolean;
   onAddMember: () => void;
   onUpdateMember: (id: string, updates: Partial<Member>) => void;
   onDeleteMember: (id: string) => void;
@@ -13,6 +14,7 @@ interface MemberRosterProps {
 
 export const MemberRoster: React.FC<MemberRosterProps> = ({
   members,
+  canEdit = false,
   onAddMember,
   onUpdateMember,
   onDeleteMember,
@@ -83,13 +85,15 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onAddMember}
-          className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Add Member</span>
-        </button>
+        {canEdit && (
+          <button
+            onClick={onAddMember}
+            className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Add Member</span>
+          </button>
+        )}
       </div>
 
       {/* Search & Filter Bar */}
@@ -183,25 +187,35 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
                 <ShieldAlert className={`w-4 h-4 ${member.strikes > 0 ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`} />
                 <span className="text-xs font-medium text-slate-400">Strikes:</span>
                 
-                <div className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
-                  <button
-                    onClick={() => handleStrikeChange(member.id, member.strikes, -1)}
-                    className="text-xs font-bold text-slate-400 hover:text-yellow-400 px-1 transition"
-                  >
-                    -
-                  </button>
-                  <span className={`text-xs font-bold px-1.5 ${
-                    member.strikes === 0 ? 'text-slate-300' : member.strikes < 3 ? 'text-yellow-400' : 'text-rose-500 font-black'
-                  }`}>
-                    {member.strikes}
-                  </span>
-                  <button
-                    onClick={() => handleStrikeChange(member.id, member.strikes, 1)}
-                    className="text-xs font-bold text-slate-400 hover:text-rose-400 px-1 transition"
-                  >
-                    +
-                  </button>
-                </div>
+                {canEdit ? (
+                  <div className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+                    <button
+                      onClick={() => handleStrikeChange(member.id, member.strikes, -1)}
+                      className="text-xs font-bold text-slate-400 hover:text-yellow-400 px-1 transition"
+                    >
+                      -
+                    </button>
+                    <span className={`text-xs font-bold px-1.5 ${
+                      member.strikes === 0 ? 'text-slate-300' : member.strikes < 3 ? 'text-yellow-400' : 'text-rose-500 font-black'
+                    }`}>
+                      {member.strikes}
+                    </span>
+                    <button
+                      onClick={() => handleStrikeChange(member.id, member.strikes, 1)}
+                      className="text-xs font-bold text-slate-400 hover:text-rose-400 px-1 transition"
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                    <span className={`text-xs font-bold ${
+                      member.strikes === 0 ? 'text-slate-300' : member.strikes < 3 ? 'text-yellow-400' : 'text-rose-500 font-black'
+                    }`}>
+                      {member.strikes}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -213,12 +227,14 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
                   <span>Profile</span>
                 </button>
 
-                <button
-                  onClick={() => onDeleteMember(member.id)}
-                  className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900 text-rose-400 border border-rose-800/40 transition"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => onDeleteMember(member.id)}
+                    className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900 text-rose-400 border border-rose-800/40 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

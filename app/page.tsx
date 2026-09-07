@@ -914,6 +914,9 @@ export default function Home() {
   const isRootAdmin = userProfile?.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile?.isRootAdmin;
   const needsRoleOnboarding = userProfile && !isRootAdmin && (userProfile.accountType === 'Unassigned' || !userProfile.accountType);
 
+  const visibleMembers = isRootAdmin ? members : members.filter((m) => !m.orgId || m.orgId === userProfile?.currentFamilyId);
+  const visibleApplications = isRootAdmin ? applications : applications.filter((a) => a.familyId === userProfile?.currentFamilyId);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
       
@@ -926,10 +929,10 @@ export default function Home() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        memberCount={members.length}
+        memberCount={visibleMembers.length}
         upcomingEventCount={events.filter((e) => e.status === 'Upcoming').length}
         viewerCount={viewerCount}
-        pendingAppsCount={applications.filter((a) => a.status === 'Pending').length}
+        pendingAppsCount={visibleApplications.filter((a) => a.status === 'Pending').length}
         userProfile={userProfile}
         unreadNotifications={notifications.filter(n => !n.isRead).length}
         onOpenJoinModal={() => setShowJoinModal(true)}
@@ -948,7 +951,7 @@ export default function Home() {
             </div>
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Roster</p>
-              <h4 className="text-2xl font-black text-white">{members.length} Members</h4>
+              <h4 className="text-2xl font-black text-white">{visibleMembers.length} Members</h4>
             </div>
           </div>
 
@@ -969,7 +972,7 @@ export default function Home() {
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Leaders</p>
               <h4 className="text-2xl font-black text-yellow-400">
-                {members.filter((m) => m.rank === 'Leader' || m.rank === 'High Command').length} HC
+                {visibleMembers.filter((m) => m.rank === 'Leader' || m.rank === 'High Command').length} HC
               </h4>
             </div>
           </div>
@@ -981,7 +984,7 @@ export default function Home() {
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Strikes Issued</p>
               <h4 className="text-2xl font-black text-rose-400">
-                {members.reduce((acc, m) => acc + m.strikes, 0)} Total
+                {visibleMembers.reduce((acc, m) => acc + m.strikes, 0)} Total
               </h4>
             </div>
           </div>
@@ -991,7 +994,8 @@ export default function Home() {
         {activeTab === 'roster' && (
           isRootAdmin || userProfile?.accountType === 'Family Leader' || Boolean(userProfile?.currentFamilyId) ? (
             <MemberRoster
-              members={isRootAdmin ? members : members.filter((m) => !m.orgId || m.orgId === userProfile?.currentFamilyId)}
+              members={visibleMembers}
+              canEdit={isRootAdmin || userProfile?.accountType === 'Family Leader'}
               onAddMember={() => setShowMemberModal(true)}
               onUpdateMember={handleUpdateMember}
               onDeleteMember={handleDeleteMember}
@@ -1073,7 +1077,7 @@ export default function Home() {
 
         {activeTab === 'applications' && (
           <FamilyApplicationsView
-            applications={isRootAdmin ? applications : applications.filter((a) => a.familyId === userProfile?.currentFamilyId)}
+            applications={visibleApplications}
             onRespond={handleRespondApplication}
           />
         )}
