@@ -48,89 +48,10 @@ export default function Home() {
   const [viewerCount, setViewerCount] = useState<number>(14);
 
   // Organizations & Applications State
-  const [organizations, setOrganizations] = useState<Organization[]>([
-    {
-      id: 'org-1',
-      name: 'Black Hawk RolePlay',
-      tag: 'BHRP',
-      logoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
-      description: 'Official Elite RolePlay & Convoy Patrol Squad',
-      status: 'Approved',
-    },
-  ]);
-
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [applications, setApplications] = useState<FamilyApplication[]>([]);
-
-  // Members & Events Data
-  const [members, setMembers] = useState<Member[]>([
-    {
-      id: 'm-1',
-      name: 'Rafay King',
-      discordTag: 'rafay#0001',
-      ingameId: 'BH-101',
-      rank: 'Leader',
-      status: 'Active',
-      strikes: 0,
-      xp: 1450,
-      joinedDate: '2024-01-15',
-    },
-    {
-      id: 'm-2',
-      name: 'Imran Khan',
-      discordTag: 'imran#1234',
-      ingameId: 'BH-102',
-      rank: 'High Command',
-      status: 'Active',
-      strikes: 0,
-      xp: 1200,
-      joinedDate: '2024-02-01',
-    },
-    {
-      id: 'm-3',
-      name: 'Daniyal Shah',
-      discordTag: 'daniyal#9999',
-      ingameId: 'BH-105',
-      rank: 'Officer',
-      status: 'Active',
-      strikes: 1,
-      xp: 850,
-      joinedDate: '2024-03-10',
-    },
-  ]);
-
-  const [events, setEvents] = useState<ConvoyEvent[]>([
-    {
-      id: 'e-1',
-      title: 'Mega City Patrol & Cargo Convoy',
-      game: 'GTA V RP',
-      eventDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-      routeDetails: 'Paleto Bay to Los Santos Port via Route 68',
-      imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80',
-      status: 'Upcoming',
-      slots: [
-        { id: 's-1', roleName: 'Lead Pilot / Lead Vehicle', claimedByName: 'Rafay King' },
-        { id: 's-2', roleName: 'Heavy Cargo Driver', claimedByName: 'Imran Khan' },
-        { id: 's-3', roleName: 'Escort Guard 1', claimedByName: 'Daniyal Shah' },
-        { id: 's-4', roleName: 'Rear Sweeper' },
-        { id: 's-5', roleName: 'General Member Slot' },
-      ],
-    },
-    {
-      id: 'e-2',
-      title: 'Euro Truck Simulator 2 Highway Rally',
-      game: 'ETS2 Convoy',
-      eventDate: new Date(Date.now() + 86400000 * 5).toISOString(),
-      routeDetails: 'Berlin to Paris via Luxembourg (Sim 1)',
-      imageUrl: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=800&auto=format&fit=crop&q=80',
-      status: 'Upcoming',
-      slots: [
-        { id: 's-21', roleName: 'Lead Convoy Captain', claimedByName: 'Imran Khan' },
-        { id: 's-22', roleName: 'Heavy Cargo 100T' },
-        { id: 's-23', roleName: 'Pilot Escort Vehicle' },
-        { id: 's-24', roleName: 'Convoy Tail Guard' },
-      ],
-    },
-  ]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [events, setEvents] = useState<ConvoyEvent[]>([]);
 
   // 1. Supabase Auth & Local Storage Session Listener
   useEffect(() => {

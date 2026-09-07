@@ -171,36 +171,7 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
           <span className="text-xs text-slate-400 font-mono">{approvedOrgs.length} Approved</span>
         </div>
 
-        {/* Create Family Form */}
-        <form onSubmit={handleCreateOrg} className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-          <h3 className="text-xs font-bold uppercase text-yellow-400 font-mono">Direct Root Admin Family Creation</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-            <input
-              type="text"
-              placeholder="Family Name (e.g. Apex RP)"
-              value={newOrgName}
-              onChange={(e) => setNewOrgName(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-yellow-400 outline-none"
-              required
-            />
-            <input
-              type="text"
-              placeholder="Tag (e.g. APEX)"
-              value={newOrgTag}
-              onChange={(e) => setNewOrgTag(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono focus:border-yellow-400 outline-none"
-              required
-            />
-            <button
-              type="submit"
-              disabled={creatingOrg}
-              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5 shadow-md shadow-yellow-500/20 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>{creatingOrg ? 'Creating...' : 'Create Approved Family'}</span>
-            </button>
-          </div>
-        </form>
+        {/* Approved Organizations List */}
 
         {/* Organization List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

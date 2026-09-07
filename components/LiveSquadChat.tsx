@@ -21,18 +21,7 @@ export interface VoiceParticipant {
 }
 
 export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'msg-init-1',
-      userId: 'root-sys',
-      senderName: 'BHRP Command Center',
-      senderRank: 'System',
-      ingameId: 'SYS-01',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      text: 'Tactical Frequency 104.5 MHz active. Squad chat & voice comms online.',
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [inputText, setInputText] = useState('');
   const [isMicMuted, setIsMicMuted] = useState(true);
