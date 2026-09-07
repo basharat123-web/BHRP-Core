@@ -3,6 +3,18 @@ export type MemberStatus = 'Active' | 'On Leave' | 'Inactive';
 export type GameType = 'GTA V RP' | 'ETS2 Convoy' | 'TruckersMP' | 'Other';
 export type EventStatus = 'Upcoming' | 'Live' | 'Completed' | 'Cancelled';
 
+export type AccountType = 'Unassigned' | 'Member' | 'Family Leader' | 'Root Admin';
+export type ApplicationStatus = 'None' | 'Pending' | 'Approved' | 'Rejected';
+
+export interface Organization {
+  id: string;
+  name: string;
+  tag: string;
+  logoUrl?: string;
+  description?: string;
+  createdAt?: string;
+}
+
 export interface Member {
   id: string;
   name: string;
@@ -13,6 +25,7 @@ export interface Member {
   strikes: number;
   xp: number;
   joinedDate: string;
+  orgId?: string;
 }
 
 export interface EventSlot {
@@ -40,10 +53,30 @@ export interface UserProfile {
   avatarUrl: string;
   ingameId: string;
   rank: MemberRank;
+  accountType: AccountType;
+  isRootAdmin: boolean;
+  currentFamilyId?: string;
+  currentFamilyName?: string;
+  appliedFamilyId?: string;
+  applicationStatus?: ApplicationStatus;
   discordTag: string;
   bio: string;
   xp: number;
   createdAt?: string;
+}
+
+export interface FamilyApplication {
+  id: string;
+  userId: string;
+  familyId: string;
+  familyName?: string;
+  applicantName: string;
+  applicantEmail: string;
+  discordTag: string;
+  ingameId: string;
+  message?: string;
+  status: ApplicationStatus;
+  createdAt: string;
 }
 
 export interface PresenceState {
@@ -52,4 +85,3 @@ export interface PresenceState {
   name?: string;
   avatar?: string;
 }
-

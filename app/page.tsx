@@ -8,19 +8,52 @@ import { DiscordWebhookModal } from '@/components/DiscordWebhookModal';
 import { MemberModal } from '@/components/MemberModal';
 import { PublicLanding } from '@/components/PublicLanding';
 import { UserProfileView } from '@/components/UserProfile';
-import { Member, ConvoyEvent, UserProfile } from '@/lib/types';
-import { supabase, signInWithGoogle, signOutUser, fetchUserProfile, updateUserProfile } from '@/lib/supabase';
-import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User } from 'lucide-react';
+import { RootAdminPanel } from '@/components/RootAdminPanel';
+import { RoleOnboardingModal } from '@/components/RoleOnboardingModal';
+import { FamilyJoinModal } from '@/components/FamilyJoinModal';
+import { FamilyApplicationsView } from '@/components/FamilyApplicationsView';
+import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType } from '@/lib/types';
+import {
+  supabase,
+  signInWithGoogle,
+  signOutUser,
+  fetchUserProfile,
+  updateUserProfile,
+  fetchOrganizations,
+  createOrganization,
+  submitFamilyApplication,
+  fetchFamilyApplications,
+  respondToApplication,
+} from '@/lib/supabase';
+import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile' | 'admin' | 'applications'>('roster');
   
   // Auth & Profile State
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Live Viewers Presence Count
-  const [viewerCount, setViewerCount] = useState<number>(12);
+  // Live Viewers Count
+  const [viewerCount, setViewerCount] = useState<number>(14);
+
+  // Organizations & Applications State
+  const [organizations, setOrganizations] = useState<Organization[]>([
+    {
+      id: 'org-1',
+      name: 'Black Hawk RolePlay',
+      tag: 'BHRP',
+      logoUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
+      description: 'Official Elite RolePlay & Convoy Patrol Squad',
+    },
+  ]);
+
+  const [applications, setApplications] = useState<FamilyApplication[]>([]);
+
+  // Modals state
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedDiscordEvent, setSelectedDiscordEvent] = useState<ConvoyEvent | null>(null);
 
   // Members & Events Data
   const [members, setMembers] = useState<Member[]>([
@@ -68,17 +101,6 @@ export default function Home() {
       xp: 420,
       joinedDate: '2024-04-18',
     },
-    {
-      id: 'm-5',
-      name: 'Hamza Ali',
-      discordTag: 'hamza#8811',
-      ingameId: 'BH-120',
-      rank: 'Recruit',
-      status: 'On Leave',
-      strikes: 2,
-      xp: 180,
-      joinedDate: '2024-05-02',
-    },
   ]);
 
   const [events, setEvents] = useState<ConvoyEvent[]>([
@@ -115,10 +137,6 @@ export default function Home() {
     },
   ]);
 
-  // Modals state
-  const [showMemberModal, setShowMemberModal] = useState(false);
-  const [selectedDiscordEvent, setSelectedDiscordEvent] = useState<ConvoyEvent | null>(null);
-
   // 1. Supabase Auth Listener
   useEffect(() => {
     const client = supabase;
@@ -132,22 +150,12 @@ export default function Home() {
         const { data } = await client.auth.getSession();
         const session = data?.session;
         if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
+          const profile = await fetchUserProfile(session.user.id, session.user.email);
           if (profile) {
             setUserProfile(profile);
-          } else {
-            // Fallback profile if record not found
-            setUserProfile({
-              id: session.user.id,
-              email: session.user.email || '',
-              fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'BHRP Member',
-              avatarUrl: session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-              ingameId: 'BH-NEW',
-              rank: 'Member',
-              discordTag: session.user.email?.split('@')[0] || 'user#0000',
-              bio: 'Black Hawk RP Squad Member',
-              xp: 150,
-            });
+            if (profile.email.toLowerCase() === 'basharat81253@gmail.com' || profile.isRootAdmin) {
+              setActiveTab('admin');
+            }
           }
         }
       } catch (err) {
@@ -161,21 +169,12 @@ export default function Home() {
 
     const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
+        const profile = await fetchUserProfile(session.user.id, session.user.email);
         if (profile) {
           setUserProfile(profile);
-        } else {
-          setUserProfile({
-            id: session.user.id,
-            email: session.user.email || '',
-            fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'BHRP Member',
-            avatarUrl: session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-            ingameId: 'BH-NEW',
-            rank: 'Member',
-            discordTag: session.user.email?.split('@')[0] || 'user#0000',
-            bio: 'Black Hawk RP Squad Member',
-            xp: 150,
-          });
+          if (profile.email.toLowerCase() === 'basharat81253@gmail.com' || profile.isRootAdmin) {
+            setActiveTab('admin');
+          }
         }
       } else {
         setUserProfile(null);
@@ -187,8 +186,22 @@ export default function Home() {
     };
   }, []);
 
+  // 2. Fetch Organizations & Applications
+  useEffect(() => {
+    const loadOrgData = async () => {
+      const orgs = await fetchOrganizations();
+      if (orgs.length > 0) {
+        setOrganizations(orgs);
+      }
+      const apps = await fetchFamilyApplications();
+      if (apps.length > 0) {
+        setApplications(apps);
+      }
+    };
+    loadOrgData();
+  }, []);
 
-  // 2. Real-Time Presence Live Viewers Counter
+  // 3. Real-Time Presence Counter
   useEffect(() => {
     let presenceChannel: any = null;
 
@@ -217,12 +230,10 @@ export default function Home() {
         });
     }
 
-    // Dynamic Live Counter Simulation fallback (kept active to show live movement)
     const interval = setInterval(() => {
       setViewerCount((prev) => {
-        const delta = Math.floor(Math.random() * 3) - 1; // -1, 0, or +1
-        const newCount = Math.max(8, prev + delta);
-        return newCount;
+        const delta = Math.floor(Math.random() * 3) - 1;
+        return Math.max(10, prev + delta);
       });
     }, 6000);
 
@@ -234,58 +245,30 @@ export default function Home() {
     };
   }, [userProfile]);
 
-  // 3. Fetch Supabase Data if configured
-  useEffect(() => {
-    if (supabase) {
-      const client = supabase;
-      const fetchSupabaseData = async () => {
-        try {
-          const { data: dbMembers } = await client.from('members').select('*');
-          if (dbMembers && dbMembers.length > 0) {
-            const formatted: Member[] = dbMembers.map((m: any) => ({
-              id: m.id,
-              name: m.name,
-              discordTag: m.discord_tag,
-              ingameId: m.ingame_id,
-              rank: m.rank,
-              status: m.status,
-              strikes: m.strikes || 0,
-              xp: m.xp || 100,
-              joinedDate: m.joined_date || new Date().toISOString().split('T')[0],
-            }));
-            setMembers(formatted);
-          }
-        } catch (e) {
-          console.warn('Supabase fetch error, using local state fallback');
-        }
-      };
-
-      fetchSupabaseData();
-    }
-  }, []);
-
-  // Handlers for Login / Logout / Profile
+  // Auth Handlers
   const handleGoogleSignIn = async () => {
     if (supabase) {
       await signInWithGoogle();
     } else {
-      // Demo Login Fallback
       handleDemoSignIn();
     }
   };
 
   const handleDemoSignIn = () => {
     setUserProfile({
-      id: 'demo-user-1',
-      email: 'rafay.king@bhrp.com',
-      fullName: 'Rafay King',
+      id: 'root-admin-1',
+      email: 'basharat81253@gmail.com',
+      fullName: 'Basharat Hussain',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      ingameId: 'BH-101',
+      ingameId: 'ROOT-01',
       rank: 'Leader',
-      discordTag: 'rafay#0001',
-      bio: 'Commander of Black Hawk RP. GTA V RP Convoy Officer & Trucking Lead.',
-      xp: 1450,
+      accountType: 'Root Admin',
+      isRootAdmin: true,
+      discordTag: 'basharat#0001',
+      bio: 'Supreme Master Administrator & Black Hawk RP Founder.',
+      xp: 2000,
     });
+    setActiveTab('admin');
   };
 
   const handleSignOut = async () => {
@@ -296,13 +279,130 @@ export default function Home() {
     setActiveTab('roster');
   };
 
-  const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
+  const handleSelectRole = async (role: AccountType, familyName?: string, familyTag?: string) => {
     if (!userProfile) return;
-    const updated = { ...userProfile, ...updates };
-    setUserProfile(updated);
 
-    if (supabase && userProfile.id && !userProfile.id.startsWith('demo-')) {
-      await updateUserProfile(userProfile.id, updates);
+    let createdOrgId: string | undefined = undefined;
+
+    if (role === 'Family Leader' && familyName && familyTag) {
+      const newOrg = await createOrganization(familyName, familyTag);
+      if (newOrg) {
+        createdOrgId = newOrg.id;
+        setOrganizations((prev) => [...prev, newOrg]);
+      }
+    }
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      accountType: role,
+      currentFamilyId: createdOrgId,
+    };
+
+    setUserProfile(updatedProfile);
+
+    if (supabase && userProfile.id) {
+      await updateUserProfile(userProfile.id, {
+        accountType: role,
+        currentFamilyId: createdOrgId,
+      });
+    }
+  };
+
+  const handleSubmitApplication = async (familyId: string, message: string) => {
+    if (!userProfile) return;
+
+    const newApp: FamilyApplication = {
+      id: `app-${Date.now()}`,
+      userId: userProfile.id,
+      familyId,
+      familyName: organizations.find((o) => o.id === familyId)?.name || 'RP Family',
+      applicantName: userProfile.fullName,
+      applicantEmail: userProfile.email,
+      discordTag: userProfile.discordTag,
+      ingameId: userProfile.ingameId,
+      message,
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    setApplications((prev) => [newApp, ...prev]);
+
+    setUserProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            appliedFamilyId: familyId,
+            applicationStatus: 'Pending',
+          }
+        : null
+    );
+
+    if (supabase && userProfile.id) {
+      await submitFamilyApplication(
+        userProfile.id,
+        familyId,
+        userProfile.fullName,
+        userProfile.email,
+        userProfile.discordTag,
+        userProfile.ingameId,
+        message
+      );
+    }
+  };
+
+  const handleRespondApplication = async (
+    applicationId: string,
+    userId: string,
+    familyId: string,
+    status: 'Approved' | 'Rejected',
+    applicantName: string,
+    discordTag: string,
+    ingameId: string
+  ) => {
+    setApplications((prev) =>
+      prev.map((a) => (a.id === applicationId ? { ...a, status } : a))
+    );
+
+    if (status === 'Approved') {
+      const newMem: Member = {
+        id: `m-${Date.now()}`,
+        name: applicantName,
+        discordTag,
+        ingameId,
+        rank: 'Member',
+        status: 'Active',
+        strikes: 0,
+        xp: 100,
+        joinedDate: new Date().toISOString().split('T')[0],
+      };
+      setMembers((prev) => [...prev, newMem]);
+    }
+
+    if (supabase) {
+      await respondToApplication(
+        applicationId,
+        userId,
+        familyId,
+        status,
+        applicantName,
+        discordTag,
+        ingameId
+      );
+    }
+  };
+
+  const handleCreateOrganization = async (name: string, tag: string, description?: string) => {
+    const newOrg = await createOrganization(name, tag, description);
+    if (newOrg) {
+      setOrganizations((prev) => [...prev, newOrg]);
+    } else {
+      const fallbackOrg: Organization = {
+        id: `org-${Date.now()}`,
+        name,
+        tag,
+        description,
+      };
+      setOrganizations((prev) => [...prev, fallbackOrg]);
     }
   };
 
@@ -410,9 +510,17 @@ export default function Home() {
     );
   }
 
+  const isRootAdmin = userProfile?.email?.toLowerCase() === 'basharat81253@gmail.com' || userProfile?.isRootAdmin;
+  const needsRoleOnboarding = userProfile && !isRootAdmin && userProfile.accountType === 'Unassigned';
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0d14]">
+    <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
       
+      {/* Role Selection Onboarding Modal */}
+      {needsRoleOnboarding && (
+        <RoleOnboardingModal onSelectRole={handleSelectRole} />
+      )}
+
       {/* Navigation Header */}
       <Navbar
         activeTab={activeTab}
@@ -420,7 +528,9 @@ export default function Home() {
         memberCount={members.length}
         upcomingEventCount={events.length}
         viewerCount={viewerCount}
+        pendingAppsCount={applications.filter((a) => a.status === 'Pending').length}
         userProfile={userProfile}
+        onOpenJoinModal={() => setShowJoinModal(true)}
         onGoogleSignIn={handleGoogleSignIn}
         onSignOut={handleSignOut}
       />
@@ -428,46 +538,46 @@ export default function Home() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Overview Quick Stats Widget */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#0f1423] p-5 rounded-2xl border border-slate-800 flex items-center space-x-4 shadow-lg">
-            <div className="p-3 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+        {/* Quick Stats Overview */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
+            <div className="p-3 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase">Total Roster</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Roster</p>
               <h4 className="text-2xl font-black text-white">{members.length} Members</h4>
             </div>
           </div>
 
-          <div className="bg-[#0f1423] p-5 rounded-2xl border border-slate-800 flex items-center space-x-4 shadow-lg">
-            <div className="p-3 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
+            <div className="p-3 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
               <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase">Upcoming Convoys</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Scheduled Convoys</p>
               <h4 className="text-2xl font-black text-white">{events.length} Events</h4>
             </div>
           </div>
 
-          <div className="bg-[#0f1423] p-5 rounded-2xl border border-slate-800 flex items-center space-x-4 shadow-lg">
-            <div className="p-3 rounded-xl bg-amber-600/20 text-amber-400 border border-amber-500/30">
+          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
+            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40">
               <Zap className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase">Active Leaders</p>
-              <h4 className="text-2xl font-black text-amber-300">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Active Leaders</p>
+              <h4 className="text-2xl font-black text-yellow-400">
                 {members.filter((m) => m.rank === 'Leader' || m.rank === 'High Command').length} HC
               </h4>
             </div>
           </div>
 
-          <div className="bg-[#0f1423] p-5 rounded-2xl border border-slate-800 flex items-center space-x-4 shadow-lg">
-            <div className="p-3 rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
+          <div className="bg-[#0b0c10] p-5 rounded-3xl border border-yellow-500/30 flex items-center space-x-4 shadow-xl">
+            <div className="p-3 rounded-2xl bg-rose-950/50 text-rose-400 border border-rose-800">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-semibold uppercase">Strikes Issued</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Strikes Issued</p>
               <h4 className="text-2xl font-black text-rose-400">
                 {members.reduce((acc, m) => acc + m.strikes, 0)} Total
               </h4>
@@ -495,24 +605,51 @@ export default function Home() {
           />
         )}
 
+        {activeTab === 'applications' && (
+          <FamilyApplicationsView
+            applications={applications}
+            onRespond={handleRespondApplication}
+          />
+        )}
+
+        {activeTab === 'admin' && userProfile && isRootAdmin && (
+          <RootAdminPanel
+            rootProfile={userProfile}
+            members={members}
+            events={events}
+            organizations={organizations}
+            applications={applications}
+            onCreateOrganization={handleCreateOrganization}
+            onUpdateMember={handleUpdateMember}
+            onDeleteMember={handleDeleteMember}
+          />
+        )}
+
         {activeTab === 'profile' && userProfile && (
           <UserProfileView
             profile={userProfile}
-            onUpdateProfile={handleUpdateProfile}
+            onUpdateProfile={async (updates) => {
+              const updated = { ...userProfile, ...updates };
+              setUserProfile(updated);
+              if (supabase && userProfile.id) {
+                await updateUserProfile(userProfile.id, updates);
+              }
+            }}
             onSignOut={handleSignOut}
+            onOpenJoinModal={() => setShowJoinModal(true)}
           />
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-[#0d121f] py-8 text-center text-xs text-slate-400">
+      <footer className="border-t border-slate-800 bg-[#06070a] py-8 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-slate-200">BHRP CORE Management Platform</span>
+            <Shield className="w-4 h-4 text-yellow-400" />
+            <span className="font-bold text-slate-200">BHRP CORE Tactical Gaming Edition</span>
             <span>• Royal Kingdom Gaming</span>
           </div>
-          <p className="text-slate-500 font-mono">Ready for Vercel & Supabase Free Hosting (0 PKR)</p>
+          <p className="text-yellow-500/80">Logged in Root Admin: basharat81253@gmail.com</p>
         </div>
       </footer>
 
@@ -521,6 +658,15 @@ export default function Home() {
         <MemberModal
           onClose={() => setShowMemberModal(false)}
           onAddMember={handleAddMember}
+        />
+      )}
+
+      {showJoinModal && userProfile && (
+        <FamilyJoinModal
+          userProfile={userProfile}
+          organizations={organizations}
+          onSubmitApplication={handleSubmitApplication}
+          onClose={() => setShowJoinModal(false)}
         />
       )}
 

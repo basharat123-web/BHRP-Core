@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     name TEXT NOT NULL,
     tag TEXT NOT NULL,
     logo_url TEXT,
+    description TEXT DEFAULT 'Official Gaming Family & RolePlay Squad',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -58,6 +59,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     avatar_url TEXT,
     ingame_id TEXT DEFAULT 'BH-NEW',
     rank TEXT DEFAULT 'Member',
+    account_type TEXT DEFAULT 'Unassigned', -- 'Unassigned', 'Member', 'Family Leader', 'Root Admin'
+    is_root_admin BOOLEAN DEFAULT false,
+    current_family_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
+    applied_family_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
+    application_status TEXT DEFAULT 'None', -- 'None', 'Pending', 'Approved', 'Rejected'
     discord_tag TEXT,
     bio TEXT DEFAULT 'BHRP Family Member',
     xp INT DEFAULT 100,
@@ -65,19 +71,46 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 7. Family Join Applications Table
+CREATE TABLE IF NOT EXISTS public.family_applications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    family_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
+    applicant_name TEXT NOT NULL,
+    applicant_email TEXT NOT NULL,
+    discord_tag TEXT,
+    ingame_id TEXT,
+    message TEXT,
+    status TEXT DEFAULT 'Pending', -- 'Pending', 'Approved', 'Rejected'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Automatic Profile Creation Trigger on Auth Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  is_root BOOL := false;
+  acc_type TEXT := 'Unassigned';
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, avatar_url, discord_tag)
+  IF lower(new.email) = 'basharat81253@gmail.com' THEN
+    is_root := true;
+    acc_type := 'Root Admin';
+  END IF;
+
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, discord_tag, is_root_admin, account_type)
   VALUES (
     new.id,
     new.email,
     COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
-    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)) || '#0000'
+    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)) || '#0000',
+    is_root,
+    acc_type
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    is_root_admin = EXCLUDED.is_root_admin,
+    account_type = CASE WHEN EXCLUDED.is_root_admin THEN 'Root Admin' ELSE profiles.account_type END;
+
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -89,8 +122,8 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Seed Initial Data for BHRP Core
-INSERT INTO public.organizations (name, tag, logo_url)
-VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80')
+INSERT INTO public.organizations (name, tag, logo_url, description)
+VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80', 'Elite GTA V RolePlay & Heavy Cargo Convoy Squad')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.members (name, discord_tag, ingame_id, rank, status, strikes, xp, joined_date)
@@ -107,4 +140,3 @@ VALUES
 ('Mega City Patrol & Cargo Convoy', 'GTA V RP', NOW() + INTERVAL '2 days', 'Paleto Bay to Los Santos Port via Highway 68', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80', 'Upcoming'),
 ('Euro Truck Simulator 2 Euro-Highway Rally', 'ETS2 Convoy', NOW() + INTERVAL '5 days', 'Berlin to Paris via Luxembourg (Server 1)', 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=800&auto=format&fit=crop&q=80', 'Upcoming')
 ON CONFLICT DO NOTHING;
-

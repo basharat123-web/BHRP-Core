@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile } from './types';
+import { UserProfile, FamilyApplication, Organization, AccountType, ApplicationStatus } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -27,7 +27,7 @@ export const signOutUser = async () => {
   return await supabase.auth.signOut();
 };
 
-export const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+export const fetchUserProfile = async (userId: string, email?: string): Promise<UserProfile | null> => {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
@@ -38,13 +38,22 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
 
     if (error || !data) return null;
 
+    const userEmail = (data.email || email || '').toLowerCase();
+    const isRoot = userEmail === 'basharat81253@gmail.com' || Boolean(data.is_root_admin);
+    const accountType: AccountType = isRoot ? 'Root Admin' : (data.account_type || 'Unassigned');
+
     return {
       id: data.id,
-      email: data.email || '',
+      email: data.email || email || '',
       fullName: data.full_name || 'BHRP Member',
       avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
       ingameId: data.ingame_id || 'BH-NEW',
       rank: data.rank || 'Member',
+      accountType: accountType,
+      isRootAdmin: isRoot,
+      currentFamilyId: data.current_family_id,
+      appliedFamilyId: data.applied_family_id,
+      applicationStatus: data.application_status || 'None',
       discordTag: data.discord_tag || 'User#0000',
       bio: data.bio || 'BHRP RolePlay Enthusiast',
       xp: data.xp || 100,
@@ -65,6 +74,10 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.discordTag !== undefined) dbUpdates.discord_tag = updates.discordTag;
     if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
     if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;
+    if (updates.accountType !== undefined) dbUpdates.account_type = updates.accountType;
+    if (updates.currentFamilyId !== undefined) dbUpdates.current_family_id = updates.currentFamilyId;
+    if (updates.appliedFamilyId !== undefined) dbUpdates.applied_family_id = updates.appliedFamilyId;
+    if (updates.applicationStatus !== undefined) dbUpdates.application_status = updates.applicationStatus;
     dbUpdates.updated_at = new Date().toISOString();
 
     const { error } = await supabase
@@ -79,3 +92,161 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   }
 };
 
+// Organizations / Families
+export const fetchOrganizations = async (): Promise<Organization[]> => {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase.from('organizations').select('*');
+    if (error || !data) return [];
+    return data.map((org: any) => ({
+      id: org.id,
+      name: org.name,
+      tag: org.tag,
+      logoUrl: org.logo_url,
+      description: org.description,
+      createdAt: org.created_at,
+    }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const createOrganization = async (name: string, tag: string, description?: string, logoUrl?: string): Promise<Organization | null> => {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('organizations')
+      .insert([{ name, tag, description, logo_url: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80' }])
+      .select()
+      .single();
+
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      name: data.name,
+      tag: data.tag,
+      logoUrl: data.logo_url,
+      description: data.description,
+      createdAt: data.created_at,
+    };
+  } catch (err) {
+    return null;
+  }
+};
+
+// Family Applications
+export const submitFamilyApplication = async (
+  userId: string,
+  familyId: string,
+  applicantName: string,
+  applicantEmail: string,
+  discordTag: string,
+  ingameId: string,
+  message?: string
+): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    // 1. Create application row
+    const { error: appError } = await supabase.from('family_applications').insert([
+      {
+        user_id: userId,
+        family_id: familyId,
+        applicant_name: applicantName,
+        applicant_email: applicantEmail,
+        discord_tag: discordTag,
+        ingame_id: ingameId,
+        message: message || 'Requesting to join family',
+        status: 'Pending',
+      },
+    ]);
+
+    if (appError) return false;
+
+    // 2. Update user profile state
+    await supabase.from('profiles').update({
+      applied_family_id: familyId,
+      application_status: 'Pending',
+    }).eq('id', userId);
+
+    return true;
+  } catch (err) {
+    console.error('Error submitting application:', err);
+    return false;
+  }
+};
+
+export const fetchFamilyApplications = async (familyId?: string): Promise<FamilyApplication[]> => {
+  if (!supabase) return [];
+  try {
+    let query = supabase.from('family_applications').select('*, organizations(name)');
+    if (familyId) {
+      query = query.eq('family_id', familyId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data.map((app: any) => ({
+      id: app.id,
+      userId: app.user_id,
+      familyId: app.family_id,
+      familyName: app.organizations?.name || 'Family Squad',
+      applicantName: app.applicant_name,
+      applicantEmail: app.applicant_email,
+      discordTag: app.discord_tag,
+      ingameId: app.ingame_id,
+      message: app.message,
+      status: app.status as ApplicationStatus,
+      createdAt: app.created_at,
+    }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const respondToApplication = async (
+  applicationId: string,
+  userId: string,
+  familyId: string,
+  status: 'Approved' | 'Rejected',
+  applicantName: string,
+  discordTag: string,
+  ingameId: string
+): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    // Update application status
+    await supabase.from('family_applications').update({ status }).eq('id', applicationId);
+
+    if (status === 'Approved') {
+      // Set user profile family
+      await supabase.from('profiles').update({
+        current_family_id: familyId,
+        application_status: 'Approved',
+        applied_family_id: null,
+      }).eq('id', userId);
+
+      // Add to members table if not present
+      await supabase.from('members').insert([
+        {
+          org_id: familyId,
+          name: applicantName,
+          discord_tag: discordTag,
+          ingame_id: ingameId,
+          rank: 'Member',
+          status: 'Active',
+          strikes: 0,
+          xp: 100,
+        },
+      ]);
+    } else {
+      await supabase.from('profiles').update({
+        application_status: 'Rejected',
+      }).eq('id', userId);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error responding to application:', err);
+    return false;
+  }
+};
