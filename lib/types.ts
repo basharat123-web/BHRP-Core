@@ -32,3 +32,24 @@ export interface ConvoyEvent {
   status: EventStatus;
   slots: EventSlot[];
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string;
+  ingameId: string;
+  rank: MemberRank;
+  discordTag: string;
+  bio: string;
+  xp: number;
+  createdAt?: string;
+}
+
+export interface PresenceState {
+  onlineAt: string;
+  userId?: string;
+  name?: string;
+  avatar?: string;
+}
+

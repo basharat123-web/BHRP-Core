@@ -50,6 +50,44 @@ CREATE TABLE IF NOT EXISTS public.event_slots (
     claimed_at TIMESTAMP WITH TIME ZONE
 );
 
+-- 6. User Profiles Table (Linked to Supabase Auth)
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT,
+    full_name TEXT,
+    avatar_url TEXT,
+    ingame_id TEXT DEFAULT 'BH-NEW',
+    rank TEXT DEFAULT 'Member',
+    discord_tag TEXT,
+    bio TEXT DEFAULT 'BHRP Family Member',
+    xp INT DEFAULT 100,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Automatic Profile Creation Trigger on Auth Signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, discord_tag)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'),
+    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)) || '#0000'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger execution
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Seed Initial Data for BHRP Core
 INSERT INTO public.organizations (name, tag, logo_url)
 VALUES ('Black Hawk RolePlay', 'BHRP', 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80')
@@ -69,3 +107,4 @@ VALUES
 ('Mega City Patrol & Cargo Convoy', 'GTA V RP', NOW() + INTERVAL '2 days', 'Paleto Bay to Los Santos Port via Highway 68', 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop&q=80', 'Upcoming'),
 ('Euro Truck Simulator 2 Euro-Highway Rally', 'ETS2 Convoy', NOW() + INTERVAL '5 days', 'Berlin to Paris via Luxembourg (Server 1)', 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=800&auto=format&fit=crop&q=80', 'Upcoming')
 ON CONFLICT DO NOTHING;
+

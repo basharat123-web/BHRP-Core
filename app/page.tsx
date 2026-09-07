@@ -6,15 +6,23 @@ import { MemberRoster } from '@/components/MemberRoster';
 import { EventScheduler } from '@/components/EventScheduler';
 import { DiscordWebhookModal } from '@/components/DiscordWebhookModal';
 import { MemberModal } from '@/components/MemberModal';
-import { DeployGuide } from '@/components/DeployGuide';
-import { Member, ConvoyEvent, EventSlot } from '@/lib/types';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Shield, Users, Calendar, Award, Zap, AlertTriangle, ArrowRight, BookOpen } from 'lucide-react';
+import { PublicLanding } from '@/components/PublicLanding';
+import { UserProfileView } from '@/components/UserProfile';
+import { Member, ConvoyEvent, UserProfile } from '@/lib/types';
+import { supabase, signInWithGoogle, signOutUser, fetchUserProfile, updateUserProfile } from '@/lib/supabase';
+import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User } from 'lucide-react';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'roster' | 'events'>('roster');
+  const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile'>('roster');
   
-  // Initial Mock State
+  // Auth & Profile State
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Live Viewers Presence Count
+  const [viewerCount, setViewerCount] = useState<number>(12);
+
+  // Members & Events Data
   const [members, setMembers] = useState<Member[]>([
     {
       id: 'm-1',
@@ -111,7 +119,119 @@ export default function Home() {
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedDiscordEvent, setSelectedDiscordEvent] = useState<ConvoyEvent | null>(null);
 
-  // Fetch Supabase Data if configured
+  // 1. Supabase Auth Listener
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const profile = await fetchUserProfile(session.user.id);
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            // Fallback profile if record not found
+            setUserProfile({
+              id: session.user.id,
+              email: session.user.email || '',
+              fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'BHRP Member',
+              avatarUrl: session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+              ingameId: 'BH-NEW',
+              rank: 'Member',
+              discordTag: session.user.email?.split('@')[0] || 'user#0000',
+              bio: 'Black Hawk RP Squad Member',
+              xp: 150,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Auth session error:', err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user.id);
+        if (profile) {
+          setUserProfile(profile);
+        } else {
+          setUserProfile({
+            id: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'BHRP Member',
+            avatarUrl: session.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+            ingameId: 'BH-NEW',
+            rank: 'Member',
+            discordTag: session.user.email?.split('@')[0] || 'user#0000',
+            bio: 'Black Hawk RP Squad Member',
+            xp: 150,
+          });
+        }
+      } else {
+        setUserProfile(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2. Real-Time Presence Live Viewers Counter
+  useEffect(() => {
+    let presenceChannel: any = null;
+
+    if (supabase) {
+      presenceChannel = supabase.channel('bhrp-online-viewers', {
+        config: {
+          presence: { key: userProfile?.id || `anon-${Math.random()}` },
+        },
+      });
+
+      presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+          const state = presenceChannel.presenceState();
+          const count = Object.keys(state).length;
+          if (count > 0) {
+            setViewerCount(Math.max(count, 1));
+          }
+        })
+        .subscribe(async (status: string) => {
+          if (status === 'SUBSCRIBED') {
+            await presenceChannel.track({
+              onlineAt: new Date().toISOString(),
+              name: userProfile?.fullName || 'Anonymous Visitor',
+            });
+          }
+        });
+    }
+
+    // Dynamic Live Counter Simulation fallback (kept active to show live movement)
+    const interval = setInterval(() => {
+      setViewerCount((prev) => {
+        const delta = Math.floor(Math.random() * 3) - 1; // -1, 0, or +1
+        const newCount = Math.max(8, prev + delta);
+        return newCount;
+      });
+    }, 6000);
+
+    return () => {
+      clearInterval(interval);
+      if (presenceChannel && supabase) {
+        supabase.removeChannel(presenceChannel);
+      }
+    };
+  }, [userProfile]);
+
+  // 3. Fetch Supabase Data if configured
   useEffect(() => {
     if (supabase) {
       const client = supabase;
@@ -141,7 +261,49 @@ export default function Home() {
     }
   }, []);
 
-  // Handlers
+  // Handlers for Login / Logout / Profile
+  const handleGoogleSignIn = async () => {
+    if (supabase) {
+      await signInWithGoogle();
+    } else {
+      // Demo Login Fallback
+      handleDemoSignIn();
+    }
+  };
+
+  const handleDemoSignIn = () => {
+    setUserProfile({
+      id: 'demo-user-1',
+      email: 'rafay.king@bhrp.com',
+      fullName: 'Rafay King',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      ingameId: 'BH-101',
+      rank: 'Leader',
+      discordTag: 'rafay#0001',
+      bio: 'Commander of Black Hawk RP. GTA V RP Convoy Officer & Trucking Lead.',
+      xp: 1450,
+    });
+  };
+
+  const handleSignOut = async () => {
+    if (supabase) {
+      await signOutUser();
+    }
+    setUserProfile(null);
+    setActiveTab('roster');
+  };
+
+  const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
+    if (!userProfile) return;
+    const updated = { ...userProfile, ...updates };
+    setUserProfile(updated);
+
+    if (supabase && userProfile.id && !userProfile.id.startsWith('demo-')) {
+      await updateUserProfile(userProfile.id, updates);
+    }
+  };
+
+  // Handlers for Members & Convoys
   const handleAddMember = async (newMemData: Omit<Member, 'id'>) => {
     const newMember: Member = {
       ...newMemData,
@@ -184,13 +346,14 @@ export default function Home() {
   };
 
   const handleClaimSlot = (eventId: string, slotId: string, username: string) => {
+    const claimerName = username || userProfile?.fullName || 'Anonymous Member';
     setEvents((prev) =>
       prev.map((ev) => {
         if (ev.id === eventId) {
           return {
             ...ev,
             slots: ev.slots.map((s) =>
-              s.id === slotId ? { ...s, claimedByName: username } : s
+              s.id === slotId ? { ...s, claimedByName: claimerName } : s
             ),
           };
         }
@@ -231,6 +394,19 @@ export default function Home() {
     setEvents((prev) => [newEvent, ...prev]);
   };
 
+  // If user is NOT logged in, show the Public Landing Page by default!
+  if (!userProfile && !authLoading) {
+    return (
+      <PublicLanding
+        viewerCount={viewerCount}
+        onGoogleSignIn={handleGoogleSignIn}
+        onDemoSignIn={handleDemoSignIn}
+        members={members}
+        events={events}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0d14]">
       
@@ -240,6 +416,10 @@ export default function Home() {
         setActiveTab={setActiveTab}
         memberCount={members.length}
         upcomingEventCount={events.length}
+        viewerCount={viewerCount}
+        userProfile={userProfile}
+        onGoogleSignIn={handleGoogleSignIn}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Container */}
@@ -309,6 +489,14 @@ export default function Home() {
             onUnclaimSlot={handleUnclaimSlot}
             onOpenDiscordModal={(event) => setSelectedDiscordEvent(event)}
             onCreateEvent={handleCreateEvent}
+          />
+        )}
+
+        {activeTab === 'profile' && userProfile && (
+          <UserProfileView
+            profile={userProfile}
+            onUpdateProfile={handleUpdateProfile}
+            onSignOut={handleSignOut}
           />
         )}
       </main>
