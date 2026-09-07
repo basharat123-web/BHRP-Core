@@ -27,6 +27,7 @@ import {
   submitFamilyApplication,
   fetchFamilyApplications,
   respondToApplication,
+  fetchMembers,
 } from '@/lib/supabase';
 import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck } from 'lucide-react';
 
@@ -240,7 +241,7 @@ export default function Home() {
     };
   }, []);
 
-  // 2. Fetch Organizations & Applications
+  // 2. Fetch Organizations, Applications & Members Roster
   useEffect(() => {
     const loadOrgData = async () => {
       const orgs = await fetchOrganizations();
@@ -250,6 +251,10 @@ export default function Home() {
       const apps = await fetchFamilyApplications();
       if (apps.length > 0) {
         setApplications(apps);
+      }
+      const dbMembers = await fetchMembers();
+      if (dbMembers.length > 0) {
+        setMembers(dbMembers);
       }
     };
     loadOrgData();

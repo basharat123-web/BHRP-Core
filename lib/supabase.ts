@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, FamilyApplication, Organization, AccountType, ApplicationStatus, OrganizationStatus, ChatMessage } from './types';
+import { UserProfile, FamilyApplication, Organization, AccountType, ApplicationStatus, OrganizationStatus, ChatMessage, Member } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -89,6 +89,33 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   } catch (err) {
     console.error('Error updating profile:', err);
     return false;
+  }
+};
+
+// Members Roster
+export const fetchMembers = async (orgId?: string): Promise<Member[]> => {
+  if (!supabase) return [];
+  try {
+    let query = supabase.from('members').select('*');
+    if (orgId) {
+      query = query.eq('org_id', orgId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      discordTag: m.discord_tag,
+      ingameId: m.ingame_id,
+      rank: m.rank || 'Member',
+      status: m.status || 'Active',
+      strikes: m.strikes || 0,
+      xp: m.xp || 100,
+      joinedDate: m.joined_date || new Date().toISOString().split('T')[0],
+      orgId: m.org_id,
+    }));
+  } catch (err) {
+    return [];
   }
 };
 
