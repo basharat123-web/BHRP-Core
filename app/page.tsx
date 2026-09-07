@@ -31,6 +31,7 @@ import {
   fetchMembers,
   fetchNotifications,
   markNotificationRead,
+  updateOrganizationRanks,
 } from '@/lib/supabase';
 import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck, Bell } from 'lucide-react';
 
@@ -893,6 +894,14 @@ export default function Home() {
     setEvents((prev) => [newEvent, ...prev]);
   };
 
+  const handleUpdateCustomRanks = async (ranks: string[]) => {
+    if (!userProfile?.currentFamilyId) return;
+    setOrganizations(prev => 
+      prev.map(o => o.id === userProfile.currentFamilyId ? { ...o, customRanks: ranks } : o)
+    );
+    await updateOrganizationRanks(userProfile.currentFamilyId, ranks);
+  };
+
   // If user is NOT logged in, show the Public Landing Page by default!
   if (!userProfile && !authLoading) {
     return (
@@ -918,6 +927,7 @@ export default function Home() {
 
   const visibleMembers = isRootAdmin ? members : members.filter((m) => !m.orgId || m.orgId === userProfile?.currentFamilyId);
   const visibleApplications = isRootAdmin ? applications : applications.filter((a) => a.familyId === userProfile?.currentFamilyId);
+  const currentFamily = organizations.find((o) => o.id === userProfile?.currentFamilyId);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
@@ -998,6 +1008,8 @@ export default function Home() {
             <MemberRoster
               members={visibleMembers}
               canEdit={isRootAdmin || userProfile?.accountType === 'Family Leader'}
+              customRanks={currentFamily?.customRanks || []}
+              onUpdateCustomRanks={handleUpdateCustomRanks}
               onAddMember={() => setShowMemberModal(true)}
               onUpdateMember={handleUpdateMember}
               onDeleteMember={handleDeleteMember}

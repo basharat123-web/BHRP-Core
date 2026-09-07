@@ -212,6 +212,7 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
       logoUrl: org.logo_url,
       description: org.description,
       status: (org.status as OrganizationStatus) || 'Pending Approval',
+      customRanks: org.custom_ranks || [],
       createdAt: org.created_at,
     }));
 
@@ -238,6 +239,7 @@ export const createOrganization = async (name: string, tag: string, description?
     description: description || 'Official RP Family Squad',
     logoUrl: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
     status: 'Pending Approval',
+    customRanks: [],
     createdAt: new Date().toISOString(),
   };
 
@@ -326,6 +328,19 @@ export const deleteOrganization = async (orgId: string): Promise<boolean> => {
     return !error;
   } catch (err) {
     return true;
+  }
+};
+
+export const updateOrganizationRanks = async (orgId: string, customRanks: string[]): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('organizations')
+      .update({ custom_ranks: customRanks })
+      .eq('id', orgId);
+    return !error;
+  } catch (err) {
+    return false;
   }
 };
 

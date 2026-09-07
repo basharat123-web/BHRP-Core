@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, UserPlus, ShieldAlert, Award, Calendar, ExternalLink, AlertTriangle, Check, Zap, Star, X, Trash2, Filter, Shield } from 'lucide-react';
+import { Search, UserPlus, ShieldAlert, Award, Calendar, ExternalLink, AlertTriangle, Check, Zap, Star, X, Trash2, Filter, Shield, Settings2 } from 'lucide-react';
 import { Member, MemberRank, MemberStatus } from '@/lib/types';
 
 interface MemberRosterProps {
   members: Member[];
   canEdit?: boolean;
+  customRanks?: string[];
+  onUpdateCustomRanks?: (ranks: string[]) => void;
   onAddMember: () => void;
   onUpdateMember: (id: string, updates: Partial<Member>) => void;
   onDeleteMember: (id: string) => void;
@@ -15,6 +17,8 @@ interface MemberRosterProps {
 export const MemberRoster: React.FC<MemberRosterProps> = ({
   members,
   canEdit = false,
+  customRanks = [],
+  onUpdateCustomRanks,
   onAddMember,
   onUpdateMember,
   onDeleteMember,
@@ -22,6 +26,10 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRank, setSelectedRank] = useState<string>('All');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+
+  // Manage Ranks Modal State
+  const [showRankManager, setShowRankManager] = useState(false);
+  const [newRankName, setNewRankName] = useState('');
 
   // Filter Members
   const filteredMembers = members.filter((m) => {
@@ -48,7 +56,8 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
       case 'Recruit':
         return 'bg-slate-900 text-slate-400 border-slate-800';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        // Custom ranks get a blue theme
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-bold';
     }
   };
 
@@ -68,6 +77,23 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
     onUpdateMember(id, { strikes: newStrikes });
   };
 
+  const handleAddCustomRank = () => {
+    if (!newRankName.trim()) return;
+    if (customRanks.includes(newRankName.trim())) return;
+    if (onUpdateCustomRanks) {
+      onUpdateCustomRanks([...customRanks, newRankName.trim()]);
+    }
+    setNewRankName('');
+  };
+
+  const handleDeleteCustomRank = (rank: string) => {
+    if (onUpdateCustomRanks) {
+      onUpdateCustomRanks(customRanks.filter(r => r !== rank));
+    }
+  };
+
+  const allAvailableRanks = ['Leader', 'High Command', 'Officer', 'Member', 'Recruit', ...customRanks];
+
   return (
     <div className="space-y-6">
       
@@ -86,13 +112,23 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
         </div>
 
         {canEdit && (
-          <button
-            onClick={onAddMember}
-            className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Add Member</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowRankManager(true)}
+              className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-slate-900 border border-slate-700 hover:border-yellow-500/50 text-slate-300 hover:text-yellow-400 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+            >
+              <Settings2 className="w-4 h-4" />
+              <span>Manage Ranks</span>
+            </button>
+
+            <button
+              onClick={onAddMember}
+              className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Add Member</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -118,11 +154,9 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
             className="w-full pl-11 pr-4 py-3 bg-[#0b0c10] border border-slate-800 rounded-2xl text-yellow-400 text-xs focus:outline-none focus:border-yellow-400 transition cursor-pointer"
           >
             <option value="All">All Ranks</option>
-            <option value="Leader">Leader</option>
-            <option value="High Command">High Command</option>
-            <option value="Officer">Officer</option>
-            <option value="Member">Member</option>
-            <option value="Recruit">Recruit</option>
+            {allAvailableRanks.map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -259,14 +293,31 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
                   {selectedMember.name.charAt(0)}
                 </div>
               </div>
-              <div>
-                <div className="flex items-center space-x-2">
+              <div className="flex-1">
+                <div className="flex flex-col gap-1">
                   <h3 className="text-lg font-black text-white">{selectedMember.name}</h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-mono border ${getRankBadgeClass(selectedMember.rank)}`}>
-                    {selectedMember.rank}
-                  </span>
+                  
+                  {canEdit ? (
+                    <select
+                      value={selectedMember.rank}
+                      onChange={(e) => {
+                        onUpdateMember(selectedMember.id, { rank: e.target.value as MemberRank });
+                        setSelectedMember({ ...selectedMember, rank: e.target.value as MemberRank });
+                      }}
+                      className="w-full max-w-[200px] bg-slate-900 border border-slate-700 text-yellow-400 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-yellow-500 cursor-pointer"
+                    >
+                      {allAvailableRanks.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`inline-block w-max px-2.5 py-0.5 rounded-full text-xs font-mono border ${getRankBadgeClass(selectedMember.rank)}`}>
+                      {selectedMember.rank}
+                    </span>
+                  )}
+
                 </div>
-                <p className="text-xs font-mono text-yellow-400 mt-0.5">In-Game Callsign: {selectedMember.ingameId}</p>
+                <p className="text-xs font-mono text-yellow-400 mt-2">In-Game Callsign: {selectedMember.ingameId}</p>
                 <p className="text-xs text-slate-400 font-mono">{selectedMember.discordTag}</p>
               </div>
             </div>
@@ -280,12 +331,27 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
                   <span className="text-xs text-slate-500 block">Duty Status</span>
-                  <span className="text-xs font-bold text-yellow-400">{selectedMember.status}</span>
+                  {canEdit ? (
+                    <select
+                      value={selectedMember.status}
+                      onChange={(e) => {
+                        onUpdateMember(selectedMember.id, { status: e.target.value as MemberStatus });
+                        setSelectedMember({ ...selectedMember, status: e.target.value as MemberStatus });
+                      }}
+                      className="w-full mt-1 bg-slate-800 border border-slate-700 text-yellow-400 rounded px-2 py-1 text-xs font-bold outline-none focus:border-yellow-500 cursor-pointer"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="On Leave">On Leave</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  ) : (
+                    <span className="text-xs font-bold text-yellow-400 mt-1 block">{selectedMember.status}</span>
+                  )}
                 </div>
 
                 <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
                   <span className="text-xs text-slate-500 block">Squad XP</span>
-                  <span className="text-xs font-bold text-yellow-400">{selectedMember.xp} XP</span>
+                  <span className="text-xs font-bold text-yellow-400 mt-1 block">{selectedMember.xp} XP</span>
                 </div>
               </div>
             </div>
@@ -293,7 +359,7 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
             <div className="pt-4 border-t border-slate-800 flex justify-end">
               <button
                 onClick={() => setSelectedMember(null)}
-                className="px-5 py-2 rounded-xl bg-slate-900 text-slate-200 text-xs font-bold border border-slate-800"
+                className="px-5 py-2 rounded-xl bg-slate-900 text-slate-200 text-xs font-bold border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
               >
                 Close Profile
               </button>
@@ -301,6 +367,79 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
           </div>
         </div>
       )}
+
+      {/* Rank Manager Modal */}
+      {showRankManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="bg-[#0b0c10] border-2 border-blue-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 relative">
+            <button
+              onClick={() => setShowRankManager(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl font-black text-white uppercase flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-blue-400" />
+                Manage Custom Ranks
+              </h2>
+              <p className="text-slate-400 text-xs font-mono">Create unique ranks exclusively for your family squad.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Head Shooter, Driver..."
+                  value={newRankName}
+                  onChange={e => setNewRankName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddCustomRank()}
+                  className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-blue-500/50"
+                />
+                <button
+                  onClick={handleAddCustomRank}
+                  disabled={!newRankName.trim()}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition disabled:opacity-50 cursor-pointer"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 space-y-3 max-h-60 overflow-y-auto">
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Your Custom Ranks</h3>
+                {customRanks.length === 0 ? (
+                  <p className="text-slate-600 text-xs font-mono italic">No custom ranks created yet.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {customRanks.map(rank => (
+                      <div key={rank} className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-300 px-3 py-1.5 rounded-lg text-xs font-bold">
+                        <span>{rank}</span>
+                        <button
+                          onClick={() => handleDeleteCustomRank(rank)}
+                          className="text-blue-400/50 hover:text-rose-400 transition cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setShowRankManager(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

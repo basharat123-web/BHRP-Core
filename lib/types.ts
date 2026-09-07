@@ -1,4 +1,4 @@
-export type MemberRank = 'Leader' | 'High Command' | 'Officer' | 'Member' | 'Recruit';
+export type MemberRank = 'Leader' | 'High Command' | 'Officer' | 'Member' | 'Recruit' | string;
 export type MemberStatus = 'Active' | 'On Leave' | 'Inactive';
 export type GameType = 'GTA V RP' | 'ETS2 Convoy' | 'TruckersMP' | 'Other';
 export type EventStatus = 'Upcoming' | 'Live' | 'Completed' | 'Cancelled';
@@ -14,6 +14,7 @@ export interface Organization {
   logoUrl?: string;
   description?: string;
   status: OrganizationStatus;
+  customRanks?: string[];
   createdAt?: string;
 }
 

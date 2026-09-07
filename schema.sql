@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
     logo_url TEXT,
     description TEXT DEFAULT 'Official Gaming Family & RolePlay Squad',
     status TEXT DEFAULT 'Pending Approval', -- 'Pending Approval', 'Approved', 'Rejected'
+    custom_ranks JSONB DEFAULT '[]', -- Array of custom rank names created by the leader
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
