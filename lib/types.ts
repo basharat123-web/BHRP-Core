@@ -57,6 +57,7 @@ export interface UserProfile {
   rank: MemberRank;
   accountType: AccountType;
   isRootAdmin: boolean;
+  isBlocked?: boolean;
   currentFamilyId?: string;
   currentFamilyName?: string;
   appliedFamilyId?: string;

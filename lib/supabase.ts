@@ -51,6 +51,7 @@ export const fetchUserProfile = async (userId: string, email?: string): Promise<
       rank: data.rank || 'Member',
       accountType: accountType,
       isRootAdmin: isRoot,
+      isBlocked: Boolean(data.is_blocked),
       currentFamilyId: data.current_family_id,
       appliedFamilyId: data.applied_family_id,
       applicationStatus: data.application_status || 'None',
@@ -88,6 +89,62 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     return !error;
   } catch (err) {
     console.error('Error updating profile:', err);
+    return false;
+  }
+};
+
+// Root Admin — Fetch all user profiles (for account management)
+export const fetchAllProfiles = async (): Promise<UserProfile[]> => {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.id,
+      email: d.email || '',
+      fullName: d.full_name || 'BHRP Member',
+      avatarUrl: d.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      ingameId: d.ingame_id || 'BH-NEW',
+      rank: d.rank || 'Member',
+      accountType: d.account_type || 'Unassigned',
+      isRootAdmin: Boolean(d.is_root_admin),
+      isBlocked: Boolean(d.is_blocked),
+      currentFamilyId: d.current_family_id,
+      appliedFamilyId: d.applied_family_id,
+      applicationStatus: d.application_status || 'None',
+      discordTag: d.discord_tag || 'User#0000',
+      bio: d.bio || '',
+      xp: d.xp || 100,
+      createdAt: d.created_at,
+    }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const blockUser = async (userId: string, block: boolean): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_blocked: block, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    return !error;
+  } catch (err) {
+    return false;
+  }
+};
+
+export const deleteUserProfile = async (userId: string): Promise<boolean> => {
+  if (!supabase) return false;
+  try {
+    // Delete profile (auth user deletion needs admin SDK, this removes DB record)
+    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+    return !error;
+  } catch (err) {
     return false;
   }
 };

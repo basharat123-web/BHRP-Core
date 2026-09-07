@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     rank TEXT DEFAULT 'Member',
     account_type TEXT DEFAULT 'Unassigned', -- 'Unassigned', 'Member', 'Family Leader', 'Root Admin'
     is_root_admin BOOLEAN DEFAULT false,
+    is_blocked BOOLEAN DEFAULT false,
     current_family_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
     applied_family_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
     application_status TEXT DEFAULT 'None', -- 'None', 'Pending', 'Approved', 'Rejected'

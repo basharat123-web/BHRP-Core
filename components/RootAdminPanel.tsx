@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Member, ConvoyEvent, Organization, UserProfile, FamilyApplication } from '@/lib/types';
-import { Crown, Shield, Users, Calendar, Award, Zap, AlertTriangle, Plus, Trash2, Edit, Check, Settings, Sparkles, Database, Clock, X } from 'lucide-react';
-import { respondToOrganization } from '@/lib/supabase';
+import { Crown, Shield, Users, Calendar, Award, Zap, AlertTriangle, Plus, Trash2, Edit, Check, Settings, Sparkles, Database, Clock, X, UserX, UserCheck, Search } from 'lucide-react';
+import { respondToOrganization, fetchAllProfiles, blockUser, deleteUserProfile } from '@/lib/supabase';
 
 interface RootAdminPanelProps {
   rootProfile: UserProfile;
@@ -34,6 +34,13 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
   const [newOrgTag, setNewOrgTag] = useState('');
   const [newOrgDesc, setNewOrgDesc] = useState('');
   const [creatingOrg, setCreatingOrg] = useState(false);
+  const [allProfiles, setAllProfiles] = useState<UserProfile[]>([]);
+  const [profileSearch, setProfileSearch] = useState('');
+
+  // Load all user profiles for Root Admin
+  React.useEffect(() => {
+    fetchAllProfiles().then(setAllProfiles);
+  }, []);
 
   const pendingOrgs = organizations.filter((o) => o.status === 'Pending Approval');
   const approvedOrgs = organizations.filter((o) => o.status === 'Approved');
@@ -293,6 +300,108 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
           </table>
         </div>
 
+      </div>
+
+      {/* ALL ACCOUNTS MANAGEMENT */}
+      <div className="bg-[#0b0c10] border-2 border-rose-500/40 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
+          <h2 className="text-lg font-black text-white uppercase flex items-center gap-2">
+            <UserX className="w-5 h-5 text-rose-400" />
+            All Registered Accounts ({allProfiles.length})
+          </h2>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={profileSearch}
+              onChange={e => setProfileSearch(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 text-white rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-yellow-500/50"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto -mx-2 sm:mx-0">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[700px]">
+            <thead className="bg-slate-900/80 text-yellow-400 uppercase font-mono border-b border-slate-800">
+              <tr>
+                <th className="p-3">Account</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Role</th>
+                <th className="p-3">Status</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 font-mono">
+              {allProfiles
+                .filter(p =>
+                  p.fullName.toLowerCase().includes(profileSearch.toLowerCase()) ||
+                  p.email.toLowerCase().includes(profileSearch.toLowerCase())
+                )
+                .map(p => (
+                  <tr key={p.id} className={`hover:bg-slate-900/40 ${p.isBlocked ? 'opacity-50' : ''}`}>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <img src={p.avatarUrl} alt={p.fullName} className="w-7 h-7 rounded-full object-cover border border-yellow-500/30" />
+                        <span className="font-bold text-white">{p.fullName}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-slate-400">{p.email}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        p.isRootAdmin ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' :
+                        p.accountType === 'Family Leader' ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' :
+                        'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}>
+                        {p.accountType}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        p.isBlocked ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-green-500/20 text-green-400 border-green-500/40'
+                      }`}>
+                        {p.isBlocked ? '⛔ Blocked' : '✅ Active'}
+                      </span>
+                    </td>
+                    <td className="p-3 text-right">
+                      {!p.isRootAdmin && (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={async () => {
+                              const ok = await blockUser(p.id, !p.isBlocked);
+                              if (ok) setAllProfiles(prev => prev.map(x => x.id === p.id ? { ...x, isBlocked: !x.isBlocked } : x));
+                            }}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                              p.isBlocked
+                                ? 'bg-green-950 hover:bg-green-900 border-green-800 text-green-300'
+                                : 'bg-amber-950 hover:bg-amber-900 border-amber-800 text-amber-300'
+                            }`}
+                            title={p.isBlocked ? 'Unblock Account' : 'Block Account'}
+                          >
+                            {p.isBlocked ? <><UserCheck className="w-3 h-3" /> Unblock</> : <><UserX className="w-3 h-3" /> Block</>}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete account for ${p.fullName}? This cannot be undone.`)) return;
+                              const ok = await deleteUserProfile(p.id);
+                              if (ok) setAllProfiles(prev => prev.filter(x => x.id !== p.id));
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border bg-rose-950 hover:bg-rose-900 border-rose-800 text-rose-300 transition-all cursor-pointer"
+                            title="Permanently Delete Account"
+                          >
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+          {allProfiles.length === 0 && (
+            <p className="text-center text-slate-500 text-xs font-mono py-6">No accounts found in database. Make sure Supabase is connected.</p>
+          )}
+        </div>
       </div>
 
     </div>

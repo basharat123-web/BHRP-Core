@@ -255,10 +255,10 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
                 <div className="absolute top-0 left-0 w-full bg-slate-900/90 backdrop-blur border-b border-yellow-500/30 p-2 z-10 flex justify-between items-center">
                    <span className="text-xs font-bold text-yellow-400 flex items-center gap-2"><Mic className="w-3 h-3"/> Active Voice Channel (No Limit)</span>
                 </div>
-                <iframe 
-                   src={`https://meet.jit.si/BHRP-VC-${currentFamilyId || 'General'}#config.startWithVideoMuted=true&config.prejoinPageEnabled=false&userInfo.displayName="${userProfile.fullName}"`}
-                   allow="camera; microphone; fullscreen; display-capture; autoplay"
-                   className="w-full h-full border-0 mt-8"
+                 <iframe 
+                    src={`https://meet.jit.si/BHRP-VC-${currentFamilyId || 'BHRPGeneral'}#userInfo.displayName=${encodeURIComponent(userProfile.fullName)}&config.prejoinPageEnabled=false&config.startWithVideoMuted=true&config.startWithAudioMuted=false&config.requireDisplayName=false&config.disableDeepLinking=true&config.enableWelcomePage=false&config.startAudioOnly=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.MOBILE_APP_PROMO=false`}
+                    allow="camera; microphone; fullscreen; display-capture; autoplay"
+                    className="w-full h-full border-0 mt-8"
                 />
              </div>
           </div>
