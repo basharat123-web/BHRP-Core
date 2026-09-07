@@ -139,29 +139,71 @@ export default function Home() {
     },
   ]);
 
-  // 1. Supabase Auth Listener
+  // 1. Supabase Auth & Local Storage Session Listener
   useEffect(() => {
+    // Check localStorage cache first for zero-flicker instant load
+    const cachedProfile = typeof window !== 'undefined' ? localStorage.getItem('bhrp_active_profile') : null;
+    if (cachedProfile) {
+      try {
+        const parsed: UserProfile = JSON.parse(cachedProfile);
+        setUserProfile(parsed);
+        if (parsed.email.toLowerCase() === 'basharat81253@gmail.com' || parsed.isRootAdmin) {
+          setActiveTab('admin');
+        }
+      } catch (e) {
+        console.warn('Failed to parse cached profile');
+      }
+    }
+
     const client = supabase;
     if (!client) {
       setAuthLoading(false);
       return;
     }
 
+    const processUserSession = async (user: any) => {
+      if (!user) return;
+      const userEmail = (user.email || '').toLowerCase();
+      const isRoot = userEmail === 'basharat81253@gmail.com';
+
+      let profile = await fetchUserProfile(user.id, userEmail);
+
+      if (!profile) {
+        profile = {
+          id: user.id,
+          email: user.email || userEmail,
+          fullName: user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0] || 'BHRP Member',
+          avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+          ingameId: isRoot ? 'ROOT-01' : 'BH-NEW',
+          rank: isRoot ? 'Leader' : 'Member',
+          accountType: isRoot ? 'Root Admin' : 'Unassigned',
+          isRootAdmin: isRoot,
+          discordTag: `${userEmail.split('@')[0]}#0000`,
+          bio: isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member',
+          xp: isRoot ? 2000 : 100,
+        };
+      }
+
+      if (isRoot) {
+        profile.isRootAdmin = true;
+        profile.accountType = 'Root Admin';
+        setActiveTab('admin');
+      }
+
+      setUserProfile(profile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bhrp_active_profile', JSON.stringify(profile));
+      }
+    };
+
     const checkSession = async () => {
       try {
         const { data } = await client.auth.getSession();
-        const session = data?.session;
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id, session.user.email);
-          if (profile) {
-            setUserProfile(profile);
-            if (profile.email.toLowerCase() === 'basharat81253@gmail.com' || profile.isRootAdmin) {
-              setActiveTab('admin');
-            }
-          }
+        if (data?.session?.user) {
+          await processUserSession(data.session.user);
         }
       } catch (err) {
-        console.error('Auth session error:', err);
+        console.error('Auth session check error:', err);
       } finally {
         setAuthLoading(false);
       }
@@ -171,15 +213,7 @@ export default function Home() {
 
     const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id, session.user.email);
-        if (profile) {
-          setUserProfile(profile);
-          if (profile.email.toLowerCase() === 'basharat81253@gmail.com' || profile.isRootAdmin) {
-            setActiveTab('admin');
-          }
-        }
-      } else {
-        setUserProfile(null);
+        await processUserSession(session.user);
       }
     });
 
@@ -248,14 +282,6 @@ export default function Home() {
   }, [userProfile]);
 
   // Auth Handlers
-  const handleGoogleSignInClick = () => {
-    if (supabase) {
-      signInWithGoogle();
-    } else {
-      setShowGoogleModal(true);
-    }
-  };
-
   const handleDirectEmailSignIn = (email: string, name?: string) => {
     const isRoot = email.toLowerCase() === 'basharat81253@gmail.com';
     const profile: UserProfile = {
@@ -273,6 +299,9 @@ export default function Home() {
     };
 
     setUserProfile(profile);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bhrp_active_profile', JSON.stringify(profile));
+    }
     setShowGoogleModal(false);
 
     if (isRoot) {
@@ -283,6 +312,9 @@ export default function Home() {
   };
 
   const handleSignOut = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('bhrp_active_profile');
+    }
     if (supabase) {
       await signOutUser();
     }
@@ -310,6 +342,9 @@ export default function Home() {
     };
 
     setUserProfile(updatedProfile);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bhrp_active_profile', JSON.stringify(updatedProfile));
+    }
 
     if (supabase && userProfile.id) {
       await updateUserProfile(userProfile.id, {
@@ -338,15 +373,16 @@ export default function Home() {
 
     setApplications((prev) => [newApp, ...prev]);
 
-    setUserProfile((prev) =>
-      prev
-        ? {
-            ...prev,
-            appliedFamilyId: familyId,
-            applicationStatus: 'Pending',
-          }
-        : null
-    );
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      appliedFamilyId: familyId,
+      applicationStatus: 'Pending',
+    };
+
+    setUserProfile(updatedProfile);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bhrp_active_profile', JSON.stringify(updatedProfile));
+    }
 
     if (supabase && userProfile.id) {
       await submitFamilyApplication(
@@ -649,12 +685,15 @@ export default function Home() {
             onUpdateProfile={async (updates) => {
               const updated = { ...userProfile, ...updates };
               setUserProfile(updated);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('bhrp_active_profile', JSON.stringify(updated));
+              }
               if (supabase && userProfile.id) {
                 await updateUserProfile(userProfile.id, updates);
               }
             }}
             onSignOut={handleSignOut}
-            onOpenJoinModal={() => setShowJoinModal(true)}
+            onOpenJoinModal={() => setShowJoinModal(false)}
           />
         )}
       </main>
