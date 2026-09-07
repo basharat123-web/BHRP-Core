@@ -142,7 +142,7 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
       tag: org.tag,
       logoUrl: org.logo_url,
       description: org.description,
-      status: (org.status as OrganizationStatus) || 'Approved',
+      status: (org.status as OrganizationStatus) || 'Pending Approval',
       createdAt: org.created_at,
     }));
 

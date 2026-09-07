@@ -166,13 +166,11 @@ export default function Home() {
   useEffect(() => {
     const loadOrgData = async () => {
       const orgs = await fetchOrganizations();
-      if (orgs.length > 0) {
-        setOrganizations(orgs);
-      }
+      setOrganizations(orgs);
+
       const apps = await fetchFamilyApplications();
-      if (apps.length > 0) {
-        setApplications(apps);
-      }
+      setApplications(apps);
+
       const dbMembers = await fetchMembers();
       if (dbMembers.length > 0) {
         setMembers(dbMembers);
@@ -189,9 +187,7 @@ export default function Home() {
         { event: '*', schema: 'public', table: 'organizations' },
         async () => {
           const freshOrgs = await fetchOrganizations();
-          if (freshOrgs.length > 0) {
-            setOrganizations(freshOrgs);
-          }
+          setOrganizations(freshOrgs);
         }
       )
       .subscribe();
@@ -209,14 +205,10 @@ export default function Home() {
       bc.onmessage = async (ev) => {
         if (ev.data?.type === 'ORG_CREATED' || ev.data?.type === 'ORG_UPDATED') {
           const freshOrgs = await fetchOrganizations();
-          if (freshOrgs.length > 0) {
-            setOrganizations(freshOrgs);
-          }
+          setOrganizations(freshOrgs);
         } else if (ev.data?.type === 'APPLICATION_SUBMITTED' || ev.data?.type === 'APPLICATION_UPDATED') {
           const freshApps = await fetchFamilyApplications();
-          if (freshApps.length > 0) {
-            setApplications(freshApps);
-          }
+          setApplications(freshApps);
         }
       };
     }
