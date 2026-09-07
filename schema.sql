@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
     ingame_id TEXT DEFAULT 'BH-MEMBER',
     avatar_url TEXT,
     text TEXT NOT NULL,
-    message_type TEXT DEFAULT 'global', -- 'global', 'family', 'direct'
+    message_type TEXT DEFAULT 'global', -- 'global', 'family', 'direct', 'announcement'
     family_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
     recipient_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

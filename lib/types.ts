@@ -91,7 +91,7 @@ export interface ChatMessage {
   ingameId: string;
   avatarUrl?: string;
   text: string;
-  messageType?: 'global' | 'family' | 'direct';
+  messageType?: 'global' | 'family' | 'direct' | 'announcement';
   familyId?: string;
   recipientId?: string;
   createdAt: string;

@@ -483,7 +483,7 @@ export const respondToApplication = async (
 
 // Live Squad Chat & Voice
 export const fetchChatMessages = async (
-  messageType: 'global' | 'family' | 'direct' = 'global',
+  messageType: 'global' | 'family' | 'direct' | 'announcement' = 'global',
   familyId?: string,
   recipientId?: string,
   userId?: string
@@ -529,7 +529,7 @@ export const sendChatMessage = async (
   ingameId: string,
   avatarUrl: string,
   text: string,
-  messageType: 'global' | 'family' | 'direct' = 'global',
+  messageType: 'global' | 'family' | 'direct' | 'announcement' = 'global',
   familyId?: string,
   recipientId?: string
 ): Promise<ChatMessage | null> => {
