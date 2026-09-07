@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { UserProfile, Organization } from '@/lib/types';
@@ -45,37 +45,37 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const getRankBadgeColor = (rank: string) => {
     switch (rank) {
       case 'Leader':
-        return 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black border-yellow-400';
+        return 'bg-[#00A884]/20 text-[#00A884] border-[#00A884]/30 font-bold';
       case 'High Command':
-        return 'bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 font-black border-amber-400';
+        return 'bg-[#00A884]/10 text-[#00A884] border-[#00A884]/20 font-semibold';
       case 'Officer':
-        return 'bg-gradient-to-r from-yellow-600 to-amber-700 text-white font-bold border-yellow-500/40';
+        return 'bg-[#2A3942] text-[#E9EDEF] border-[#2A3942] font-medium';
       default:
-        return 'bg-slate-900 text-yellow-400 border-yellow-500/30';
+        return 'bg-[#111B21] text-[#8696A0] border-[#2A3942]';
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 text-[#E9EDEF] font-sans">
       
       {/* Save Success Alert */}
       {savedSuccess && (
-        <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/40 text-yellow-300 flex items-center space-x-3 shadow-lg font-mono">
-          <Check className="w-5 h-5 text-yellow-400" />
-          <span className="text-sm font-bold">Profile changes saved successfully!</span>
+        <div className="p-4 rounded-xl bg-[#00A884]/10 border border-[#00A884]/30 text-[#00A884] flex items-center space-x-3">
+          <Check className="w-5 h-5 text-[#00A884]" />
+          <span className="text-sm font-semibold">Profile changes saved successfully!</span>
         </div>
       )}
 
       {/* Main Profile Header Card */}
-      <div className="relative bg-[#0b0c10] border-2 border-yellow-500/40 rounded-3xl p-6 sm:p-8 overflow-hidden shadow-[0_0_40px_rgba(250,204,21,0.1)]">
-        {/* Top Cyber Yellow Glow */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-yellow-500/20 via-amber-500/15 to-yellow-600/20" />
+      <div className="relative bg-[#1F2C34] border border-[#2A3942] rounded-xl p-6 sm:p-8 overflow-hidden">
+        {/* Top Accent Strip */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-[#00A884]" />
 
-        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6 pt-8">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6 pt-4">
           
           <div className="flex flex-col sm:flex-row items-center sm:items-end space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
             {/* User Avatar */}
-            <div className="relative w-28 h-28 rounded-2xl overflow-hidden border-4 border-yellow-500/50 shadow-2xl bg-slate-900 flex-shrink-0">
+            <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-[#111B21] bg-[#111B21] flex-shrink-0">
               <img
                 src={profile.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'}
                 alt={profile.fullName}
@@ -86,10 +86,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             {/* User Details */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h1 className="text-2xl sm:text-3xl font-black text-white">{profile.fullName}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#E9EDEF]">{profile.fullName}</h1>
                 
                 {isRootAdmin && (
-                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 border border-yellow-300 shadow-md shadow-yellow-500/20 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#00A884]/20 text-[#00A884] border border-[#00A884]/30 flex items-center gap-1">
                     <Crown className="w-3.5 h-3.5" /> ROOT ADMIN
                   </span>
                 )}
@@ -97,21 +97,21 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 {(() => {
                   const displayRank = profile.accountType === 'Family Leader' ? 'Leader' : (profile.accountType === 'Root Admin' ? 'Root Admin' : profile.rank);
                   return (
-                    <span className={`px-3 py-1 rounded-full text-xs font-mono uppercase border ${getRankBadgeColor(displayRank)}`}>
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${getRankBadgeColor(displayRank)}`}>
                       {displayRank}
                     </span>
                   );
                 })()}
               </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-400 font-mono">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-[#8696A0]">
                 <span className="flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-yellow-400" /> {profile.email}
+                  <Mail className="w-3.5 h-3.5" /> {profile.email}
                 </span>
-                <span className="flex items-center gap-1 text-yellow-400">
+                <span className="flex items-center gap-1 text-[#00A884]">
                   <Hash className="w-3.5 h-3.5" /> ID: {profile.ingameId}
                 </span>
-                <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-bold">
+                <span className="px-2 py-0.5 rounded bg-[#111B21] border border-[#2A3942] font-semibold text-[10px]">
                   Role: {profile.accountType}
                 </span>
               </div>
@@ -123,16 +123,16 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-[#12141c] border border-yellow-500/40 hover:border-yellow-400 text-yellow-400 text-xs font-mono font-bold transition-all"
+                className="flex items-center space-x-2 px-4 py-2 rounded bg-[#111B21] border border-[#2A3942] hover:border-[#00A884] text-[#8696A0] hover:text-[#00A884] text-xs font-semibold transition-colors"
               >
-                <Edit3 className="w-4 h-4 text-yellow-400" />
+                <Edit3 className="w-4 h-4" />
                 <span>Edit Profile</span>
               </button>
             ) : (
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 text-xs font-black shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
+                className="flex items-center space-x-2 px-4 py-2 rounded bg-[#00A884] hover:bg-[#06CF9C] text-white text-xs font-semibold transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 <span>{saving ? 'Saving...' : 'Save Changes'}</span>
@@ -141,10 +141,10 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
             <button
               onClick={onSignOut}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900 border border-rose-800 text-rose-300 text-xs font-semibold transition-all"
+              className="flex items-center space-x-2 px-3 py-2 rounded bg-red-900/40 hover:bg-red-900/60 text-red-400 text-xs font-semibold transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
 
@@ -152,142 +152,188 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       </div>
 
       {/* Profile Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* Progression & Family Status */}
         <div className="space-y-6">
-          <div className="bg-[#0b0c10] border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-2">
-              <Award className="w-4 h-4 text-yellow-400" /> Progression & Status
+          <div className="bg-[#1F2C34] border border-[#2A3942] rounded-xl p-5 sm:p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#8696A0] flex items-center gap-2">
+              <Award className="w-4 h-4" /> Progression & Status
             </h3>
 
             <div>
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-slate-400">Experience (XP)</span>
-                <span className="font-bold text-yellow-400">{profile.xp} / 2000 XP</span>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-[#8696A0]">Experience (XP)</span>
+                <span className="font-semibold text-[#00A884]">{profile.xp} / 2000 XP</span>
               </div>
-              <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+              <div className="w-full bg-[#111B21] h-2 rounded-full overflow-hidden border border-[#2A3942]">
                 <div
-                  className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
+                  className="bg-[#00A884] h-full rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, (profile.xp / 2000) * 100)}%` }}
                 />
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 space-y-2 text-xs">
+            <div className="pt-3 border-t border-[#2A3942] space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Account Type</span>
-                <span className="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 font-bold border border-yellow-500/30">
+                <span className="text-[#8696A0]">Account Type</span>
+                <span className="px-2 py-0.5 rounded bg-[#00A884]/10 text-[#00A884] font-semibold border border-[#00A884]/20">
                   {profile.accountType}
                 </span>
               </div>
               
               <div className="flex items-center justify-between pt-1">
-                <span className="text-slate-500">Family Status</span>
+                <span className="text-[#8696A0]">Family Status</span>
                 {profile.accountType === 'Family Leader' ? (
                   myOrg ? (
                     myOrg.status === 'Approved' ? (
-                      <span className="font-bold text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> Approved: {myOrg.name}
+                      <span className="font-semibold text-[#00A884] flex items-center gap-1 text-[10px]">
+                        <Check className="w-3.5 h-3.5" /> Approved
                       </span>
                     ) : (
-                      <span className="font-bold text-amber-400 flex items-center gap-1" title="Requires basharat81253@gmail.com approval">
-                        <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Approval: {myOrg.name}
+                      <span className="font-semibold text-[#8696A0] flex items-center gap-1 text-[10px]">
+                        <Clock className="w-3.5 h-3.5" /> Pending Root Approval
                       </span>
                     )
                   ) : (
-                    <span className="font-bold text-amber-400 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending Root Admin Sign-off
+                    <span className="font-semibold text-[#8696A0] flex items-center gap-1 text-[10px]">
+                      <Clock className="w-3.5 h-3.5" /> Pending Creation
                     </span>
                   )
-                ) : profile.currentFamilyId ? (
-                  <span className="font-bold text-emerald-400 flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Assigned to {myOrg?.name || 'Family'}
-                  </span>
-                ) : profile.applicationStatus === 'Pending' ? (
-                  <span className="font-bold text-amber-400 flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 animate-pulse" /> Application Pending Review
-                  </span>
                 ) : (
-                  <span className="text-slate-500">No Family Assigned</span>
+                  profile.applicationStatus === 'Approved' && myOrg ? (
+                    <span className="font-semibold text-[#00A884] flex items-center gap-1 text-[10px]">
+                      <Check className="w-3.5 h-3.5" /> Approved
+                    </span>
+                  ) : profile.applicationStatus === 'Pending' ? (
+                    <span className="font-semibold text-[#8696A0] flex items-center gap-1 text-[10px]">
+                      <Clock className="w-3.5 h-3.5" /> Application Pending
+                    </span>
+                  ) : profile.applicationStatus === 'Rejected' ? (
+                    <span className="font-semibold text-red-400 text-[10px]">Application Rejected</span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[#8696A0] text-[10px]">Not in Family</span>
+                      {onOpenJoinModal && (
+                        <button
+                          onClick={onOpenJoinModal}
+                          className="text-[10px] bg-[#00A884]/10 text-[#00A884] hover:bg-[#00A884]/20 px-2 py-0.5 rounded transition-colors"
+                        >
+                          Join
+                        </button>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
+            </div>
+          </div>
 
-              {profile.accountType === 'Member' && !profile.currentFamilyId && onOpenJoinModal && (
-                <button
-                  onClick={onOpenJoinModal}
-                  className="w-full mt-2 py-2 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Apply to Join Family</span>
-                </button>
-              )}
+          <div className="bg-[#1F2C34] border border-[#2A3942] rounded-xl p-5 sm:p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#8696A0] flex items-center gap-2">
+              <Shield className="w-4 h-4" /> Security & Account
+            </h3>
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-[#8696A0]">Member ID</span>
+                <span className="text-[#E9EDEF] font-mono">{profile.id.substring(0,8)}...</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#8696A0]">Joined Date</span>
+                <span className="text-[#E9EDEF]">{new Date(profile.createdAt).toLocaleDateString()}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Editable Profile Fields */}
-        <div className="md:col-span-2 bg-[#0b0c10] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-2">
-            <User className="w-4 h-4 text-yellow-400" /> Gamer Identity & Callsign
-          </h3>
+        {/* Editable Details Form */}
+        <div className="md:col-span-2 bg-[#1F2C34] border border-[#2A3942] rounded-xl p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#2A3942] pb-4 mb-5">
+            <h3 className="text-lg font-bold text-[#E9EDEF] flex items-center gap-2">
+              <User className="w-5 h-5 text-[#00A884]" /> Identification File
+            </h3>
+            {isEditing && <span className="text-xs text-[#00A884] font-semibold animate-pulse">Editing Mode Active</span>}
+          </div>
 
-          <div className="space-y-4 font-sans">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">In-Game Tag / Callsign</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={ingameId}
-                  onChange={(e) => setIngameId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:border-yellow-400 outline-none"
-                  placeholder="e.g. BH-105"
-                />
-              ) : (
-                <p className="px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 font-mono text-sm text-yellow-400 font-bold">
-                  {profile.ingameId || 'Not set'}
-                </p>
-              )}
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">In-Game ID (Callsign)</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={ingameId}
+                    onChange={(e) => setIngameId(e.target.value)}
+                    className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-2.5 text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884] transition-colors"
+                  />
+                ) : (
+                  <div className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-2.5 text-[#E9EDEF] text-sm opacity-80 cursor-not-allowed">
+                    {profile.ingameId || 'Not set'}
+                  </div>
+                )}
+                {isEditing && <p className="text-[10px] text-[#8696A0]">Your official RP server identifier.</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Discord Tag</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={discordTag}
+                    onChange={(e) => setDiscordTag(e.target.value)}
+                    placeholder="e.g. Ghost#1234"
+                    className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-2.5 text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884] transition-colors"
+                  />
+                ) : (
+                  <div className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-2.5 text-[#E9EDEF] text-sm opacity-80 cursor-not-allowed">
+                    {profile.discordTag || 'Not set'}
+                  </div>
+                )}
+                {isEditing && <p className="text-[10px] text-[#8696A0]">Used for comms and role syncing.</p>}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Discord Tag</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={discordTag}
-                  onChange={(e) => setDiscordTag(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-yellow-400 outline-none"
-                  placeholder="e.g. username#1234"
-                />
-              ) : (
-                <p className="px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-sm text-slate-300">
-                  {profile.discordTag || 'Not set'}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Roleplay Bio / About Me</label>
+            <div className="space-y-1.5">
+              <label className="text-[11px] text-[#8696A0] font-semibold uppercase tracking-wide">Tactical Bio / Loadout</label>
               {isEditing ? (
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-yellow-400 outline-none"
-                  placeholder="Tell the family about your gaming experience..."
+                  rows={4}
+                  placeholder="Share your RP background, preferred roles, or loadout..."
+                  className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-2.5 text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884] transition-colors resize-none"
                 />
               ) : (
-                <p className="px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-sm text-slate-300 leading-relaxed">
-                  {profile.bio || 'No bio provided.'}
-                </p>
+                <div className="w-full bg-[#111B21] border border-[#2A3942] rounded px-4 py-3 text-[#E9EDEF] text-sm min-h-[100px] opacity-80 cursor-not-allowed">
+                  {profile.bio ? (
+                    <p className="whitespace-pre-wrap">{profile.bio}</p>
+                  ) : (
+                    <p className="text-[#8696A0] italic">No tactical bio set.</p>
+                  )}
+                </div>
               )}
             </div>
+            
+            {isEditing && (
+              <div className="pt-4 flex justify-end">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 rounded text-[#8696A0] hover:text-[#E9EDEF] text-sm font-semibold transition-colors mr-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-5 py-2 rounded bg-[#00A884] hover:bg-[#06CF9C] text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Profile'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
-
       </div>
-
     </div>
   );
 };

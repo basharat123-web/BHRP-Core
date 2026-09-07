@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { Organization, UserProfile } from '@/lib/types';
@@ -45,55 +45,55 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
   const isPending = userProfile.applicationStatus === 'Pending';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fadeIn">
-      <div className="relative w-full max-w-xl bg-[#0b0c10] border-2 border-yellow-500/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(250,204,21,0.15)] text-slate-100 space-y-6 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111B21]/90 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-xl bg-[#1F2C34] border border-[#2A3942] rounded-2xl p-6 sm:p-8 shadow-2xl text-[#E9EDEF] space-y-6 overflow-hidden">
         
         {/* Top Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 p-1.5 rounded-lg bg-[#111B21] border border-[#2A3942] text-[#8696A0] hover:text-[#E9EDEF] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
         <div className="space-y-2">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-mono font-bold uppercase">
+          <div className="inline-flex items-center space-x-2 px-2 py-0.5 rounded bg-[#00A884]/10 text-[#00A884] text-[10px] font-semibold uppercase">
             <Users className="w-3.5 h-3.5" /> Family Membership
           </div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-wide">
-            Apply to <span className="text-yellow-400">Join a Family</span>
+          <h2 className="text-2xl font-bold text-[#E9EDEF]">
+            Apply to Join a Family
           </h2>
-          <p className="text-slate-400 text-xs">
-            Notice: A member can only belong to <strong className="text-yellow-400 font-bold">1 Family at a time</strong>.
+          <p className="text-[#8696A0] text-sm">
+            Notice: A member can only belong to <strong className="text-[#E9EDEF]">1 Family at a time</strong>.
           </p>
         </div>
 
         {/* Check Status */}
         {hasCurrentFamily ? (
-          <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 space-y-3">
+          <div className="p-5 rounded-xl bg-[#00A884]/10 border border-[#00A884]/30 text-[#00A884] space-y-3">
             <div className="flex items-center space-x-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+              <CheckCircle2 className="w-6 h-6" />
               <div>
-                <h4 className="font-extrabold text-white text-sm">Already in a Family</h4>
-                <p className="text-xs text-emerald-400/90">You are an active member of your assigned family.</p>
+                <h4 className="font-bold text-[#00A884] text-sm">Already in a Family</h4>
+                <p className="text-xs opacity-90">You are an active member of your assigned family.</p>
               </div>
             </div>
           </div>
         ) : isPending || submitted ? (
-          <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-300 space-y-4">
+          <div className="p-5 rounded-xl bg-[#2A3942] border border-[#8696A0]/30 text-[#E9EDEF] space-y-4">
             <div className="flex items-center space-x-3">
-              <Clock className="w-6 h-6 text-amber-400 animate-pulse" />
+              <Clock className="w-6 h-6 text-[#8696A0] animate-pulse" />
               <div>
-                <h4 className="font-extrabold text-white text-sm">Application Pending Approval</h4>
-                <p className="text-xs text-amber-400/90">Your join request has been sent to the Family Leader & Root Admin for review.</p>
+                <h4 className="font-bold text-[#E9EDEF] text-sm">Application Pending Approval</h4>
+                <p className="text-xs text-[#8696A0]">Your join request has been sent to the Family Leader & Root Admin for review.</p>
               </div>
             </div>
             {onRefreshStatus && (
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="w-full py-2.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50"
+                className="w-full py-2.5 rounded bg-[#111B21] border border-[#2A3942] text-[#E9EDEF] font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#2A3942] transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Checking status...' : 'Check Approval Status'}
@@ -105,32 +105,32 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
             
             {/* Choose Family Radio List */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Select RP Family / Squad</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-wide text-[#8696A0]">Select RP Family / Squad</label>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {approvedOrgs.length === 0 ? (
-                  <p className="text-slate-400 text-xs italic font-mono p-3 bg-slate-900/60 rounded-xl">No active approved families available to join at the moment.</p>
+                  <p className="text-[#8696A0] text-xs italic p-3 bg-[#111B21] rounded-lg">No active approved families available to join at the moment.</p>
                 ) : (
                   approvedOrgs.map((org) => (
                     <div
                       key={org.id}
                       onClick={() => setSelectedOrgId(org.id)}
-                      className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                      className={`cursor-pointer p-4 rounded-xl border transition-all flex items-center justify-between ${
                         selectedOrgId === org.id
-                          ? 'bg-yellow-500/15 border-yellow-400 shadow-md shadow-yellow-500/10'
-                          : 'bg-[#12141c] border-slate-800 hover:border-slate-700'
+                          ? 'bg-[#00A884]/10 border-[#00A884]'
+                          : 'bg-[#111B21] border-[#2A3942] hover:border-[#00A884]/50'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center">
-                          <Shield className="w-5 h-5 text-yellow-400" />
+                        <div className="w-10 h-10 rounded bg-[#1F2C34] border border-[#2A3942] flex items-center justify-center">
+                          <Shield className={`w-5 h-5 ${selectedOrgId === org.id ? 'text-[#00A884]' : 'text-[#8696A0]'}`} />
                         </div>
                         <div>
-                          <h4 className="font-bold text-white text-sm">{org.name}</h4>
-                          <p className="text-xs text-slate-400">{org.description || 'Official RP Family'}</p>
+                          <h4 className={`font-semibold text-sm ${selectedOrgId === org.id ? 'text-[#E9EDEF]' : 'text-[#8696A0]'}`}>{org.name}</h4>
+                          <p className="text-xs text-[#8696A0]">{org.description || 'Official RP Family'}</p>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 font-bold">
-                        [{org.tag}]
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${selectedOrgId === org.id ? 'bg-[#00A884]/20 text-[#00A884] border-[#00A884]/30' : 'bg-[#1F2C34] text-[#8696A0] border-[#2A3942]'}`}>
+                        {org.tag}
                       </span>
                     </div>
                   ))
@@ -140,13 +140,13 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
 
             {/* Note to Leader */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Message to Family Leader</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-wide text-[#8696A0] mb-1">Message to Family Leader</label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={2}
                 placeholder="Introduce yourself and your RP experience..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:border-yellow-400 outline-none"
+                className="w-full px-3 py-2.5 rounded bg-[#111B21] border border-[#2A3942] text-[#E9EDEF] text-sm focus:border-[#00A884] outline-none transition-colors"
               />
             </div>
 
@@ -154,7 +154,7 @@ export const FamilyJoinModal: React.FC<FamilyJoinModalProps> = ({
             <button
               onClick={handleSubmit}
               disabled={!selectedOrgId || submitting}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
+              className="w-full py-3 rounded bg-[#00A884] hover:bg-[#06CF9C] disabled:opacity-50 text-white font-semibold text-sm flex items-center justify-center space-x-2 transition-colors cursor-pointer"
             >
               <Send className="w-4 h-4" />
               <span>{submitting ? 'Submitting Application...' : 'Submit Join Application'}</span>

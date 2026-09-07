@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS public.members (
           <li>Click <strong>New Project</strong>, type name <code>bhrp-core-db</code>, set database password and select region (e.g. Frankfurt or Singapore).</li>
           <li>Once created, go to the <strong>SQL Editor</strong> tab on the left menu.</li>
           <li>
-            Paste the contents of <code className="text-amber-300 font-mono">schema.sql</code> (provided in this project) or copy the snippet below, then click <strong>Run</strong>.
+            Paste the contents of <code className="text-[#00A884] font-mono">schema.sql</code> (provided in this project) or copy the snippet below, then click <strong>Run</strong>.
           </li>
         </ol>
 

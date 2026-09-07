@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { Search, UserPlus, ShieldAlert, Award, Calendar, ExternalLink, AlertTriangle, Check, Zap, Star, X, Trash2, Filter, Shield, Settings2 } from 'lucide-react';
@@ -46,29 +46,28 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
   const getRankBadgeClass = (rank: MemberRank) => {
     switch (rank) {
       case 'Leader':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40 font-black';
+        return 'bg-[#00A884]/20 text-[#00A884] border-[#00A884]/40 font-bold';
       case 'High Command':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold';
+        return 'bg-[#00A884]/10 text-[#00A884] border-[#00A884]/30 font-semibold';
       case 'Officer':
-        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30';
+        return 'bg-[#2A3942] text-[#E9EDEF] border-[#2A3942] font-medium';
       case 'Member':
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-[#111B21] text-[#8696A0] border-[#2A3942]';
       case 'Recruit':
-        return 'bg-slate-900 text-slate-400 border-slate-800';
+        return 'bg-[#111B21] text-[#8696A0] border-[#2A3942] opacity-80';
       default:
-        // Custom ranks get a blue theme
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-bold';
+        return 'bg-[#2A3942] text-[#E9EDEF] border-[#2A3942] font-medium';
     }
   };
 
   const getStatusBadgeClass = (status: MemberStatus) => {
     switch (status) {
       case 'Active':
-        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30';
+        return 'bg-[#00A884]/10 text-[#00A884] border-[#00A884]/30';
       case 'On Leave':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-[#2A3942] text-[#8696A0] border-[#2A3942]';
       case 'Inactive':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        return 'bg-red-500/10 text-red-400 border-red-500/30';
     }
   };
 
@@ -95,19 +94,19 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
   const allAvailableRanks = ['Leader', 'High Command', 'Officer', 'Member', 'Recruit', ...customRanks];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[#E9EDEF] font-sans">
       
       {/* Header & Action Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0b0c10] p-6 rounded-3xl border-2 border-yellow-500/30 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1F2C34] p-5 sm:p-6 rounded-xl border border-[#2A3942]">
         <div>
-          <h2 className="text-2xl font-black text-white uppercase flex items-center gap-3">
-            <span>BHRP Family Squad Roster</span>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400 font-mono border border-yellow-500/40 font-bold">
-              {filteredMembers.length} Active Members
+          <h2 className="text-xl font-bold flex items-center gap-3 text-[#E9EDEF]">
+            <span>Family Squad Roster</span>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-[#00A884]/10 text-[#00A884] font-semibold border border-[#00A884]/20">
+              {filteredMembers.length} Members
             </span>
           </h2>
-          <p className="text-slate-400 text-xs font-mono mt-1">
-            Track squad ranks, callsigns, strike logs, and member XP profiles.
+          <p className="text-[#8696A0] text-sm mt-1">
+            Track squad ranks, callsigns, strike logs, and member profiles.
           </p>
         </div>
 
@@ -115,7 +114,7 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowRankManager(true)}
-              className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-slate-900 border border-slate-700 hover:border-yellow-500/50 text-slate-300 hover:text-yellow-400 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+              className="flex items-center justify-center space-x-2 px-4 py-2 rounded bg-[#111B21] border border-[#2A3942] text-[#E9EDEF] hover:border-[#00A884] hover:text-[#00A884] font-semibold text-sm transition-colors cursor-pointer"
             >
               <Settings2 className="w-4 h-4" />
               <span>Manage Ranks</span>
@@ -123,7 +122,7 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
 
             <button
               onClick={onAddMember}
-              className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all cursor-pointer"
+              className="flex items-center justify-center space-x-2 px-4 py-2 rounded bg-[#00A884] hover:bg-[#06CF9C] text-white font-semibold text-sm transition-colors cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               <span>Add Member</span>
@@ -133,25 +132,25 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         
         <div className="sm:col-span-2 relative">
-          <Search className="absolute left-4 top-3.5 w-4 h-4 text-yellow-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8696A0]" />
           <input
             type="text"
             placeholder="Search by callsign (BH-101), member name, or Discord tag..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-[#0b0c10] border border-slate-800 rounded-2xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-yellow-400 transition"
+            className="w-full pl-11 pr-4 py-2.5 bg-[#1F2C34] border border-[#2A3942] rounded text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884] transition-colors"
           />
         </div>
 
         <div className="relative">
-          <Filter className="absolute left-4 top-3.5 w-4 h-4 text-yellow-400" />
+          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8696A0]" />
           <select
             value={selectedRank}
             onChange={(e) => setSelectedRank(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-[#0b0c10] border border-slate-800 rounded-2xl text-yellow-400 text-xs focus:outline-none focus:border-yellow-400 transition cursor-pointer"
+            className="w-full pl-11 pr-4 py-2.5 bg-[#1F2C34] border border-[#2A3942] rounded text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884] transition-colors cursor-pointer appearance-none"
           >
             <option value="All">All Ranks</option>
             {allAvailableRanks.map(r => (
@@ -162,11 +161,11 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
       </div>
 
       {/* Member Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredMembers.map((member) => (
           <div
             key={member.id}
-            className="group relative bg-[#0b0c10] rounded-3xl border border-slate-800 hover:border-yellow-500/50 p-5 transition-all shadow-xl flex flex-col justify-between"
+            className="group relative bg-[#1F2C34] rounded-xl border border-[#2A3942] p-5 transition-colors hover:border-[#00A884]/50 flex flex-col justify-between"
           >
             <div>
               <div className="flex items-start justify-between">
@@ -174,264 +173,220 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
                   <div className="flex items-center space-x-2">
                     <h3 
                       onClick={() => setSelectedMember(member)}
-                      className="text-base font-extrabold text-white group-hover:text-yellow-400 transition cursor-pointer hover:underline"
+                      className="text-base font-semibold text-[#E9EDEF] group-hover:text-[#00A884] transition-colors cursor-pointer"
                     >
                       {member.name}
                     </h3>
-                    <span className="text-xs font-mono text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/30 font-bold">
+                    <span className="text-[10px] text-[#00A884] bg-[#00A884]/10 px-1.5 py-0.5 rounded border border-[#00A884]/20 font-medium">
                       {member.ingameId}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 font-mono">{member.discordTag}</p>
+                  <p className="text-xs text-[#8696A0] mt-1">{member.discordTag}</p>
                 </div>
 
-                <div className="flex flex-col items-end gap-1.5 font-mono">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getRankBadgeClass(member.rank)}`}>
+                <div className="flex flex-col items-end gap-1.5">
+                  <span className={`px-2 py-0.5 rounded text-[10px] border ${getRankBadgeClass(member.rank)}`}>
                     {member.rank}
                   </span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-medium border ${getStatusBadgeClass(member.status)}`}>
+                  <span className={`px-2 py-0.5 rounded text-[10px] border ${getStatusBadgeClass(member.status)}`}>
                     {member.status}
                   </span>
                 </div>
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-2 gap-3 my-4 p-3 rounded-2xl bg-slate-900/60 border border-slate-800 font-mono">
+              <div className="grid grid-cols-2 gap-3 my-4 p-3 rounded-lg bg-[#111B21] border border-[#2A3942]">
                 <div className="flex items-center space-x-2">
-                  <Zap className="w-4 h-4 text-yellow-400" />
+                  <ShieldAlert className="w-4 h-4 text-red-400" />
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">Reputation XP</p>
-                    <p className="text-xs font-black text-yellow-400">{member.xp} XP</p>
+                    <p className="text-[10px] text-[#8696A0] uppercase font-semibold">Strikes</p>
+                    <p className="text-sm font-bold text-[#E9EDEF]">{member.strikes}/3</p>
                   </div>
                 </div>
-
                 <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <Award className="w-4 h-4 text-[#00A884]" />
                   <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold">Joined</p>
-                    <p className="text-xs font-medium text-slate-200">{member.joinedDate}</p>
+                    <p className="text-[10px] text-[#8696A0] uppercase font-semibold">XP</p>
+                    <p className="text-sm font-bold text-[#E9EDEF]">{member.xp}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Controls */}
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between font-mono">
-              <div className="flex items-center space-x-2">
-                <ShieldAlert className={`w-4 h-4 ${member.strikes > 0 ? 'text-rose-400 animate-pulse' : 'text-slate-500'}`} />
-                <span className="text-xs font-medium text-slate-400">Strikes:</span>
+            {/* Admin Actions */}
+            {canEdit && (
+              <div className="pt-3 border-t border-[#2A3942] flex items-center justify-between">
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => handleStrikeChange(member.id, member.strikes, 1)}
+                    className="p-1.5 rounded hover:bg-[#111B21] text-[#8696A0] hover:text-red-400 transition-colors"
+                    title="Add Strike"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStrikeChange(member.id, member.strikes, -1)}
+                    disabled={member.strikes === 0}
+                    className="p-1.5 rounded hover:bg-[#111B21] text-[#8696A0] hover:text-[#00A884] disabled:opacity-30 transition-colors"
+                    title="Remove Strike"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                </div>
                 
-                {canEdit ? (
-                  <div className="flex items-center space-x-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
-                    <button
-                      onClick={() => handleStrikeChange(member.id, member.strikes, -1)}
-                      className="text-xs font-bold text-slate-400 hover:text-yellow-400 px-1 transition"
-                    >
-                      -
-                    </button>
-                    <span className={`text-xs font-bold px-1.5 ${
-                      member.strikes === 0 ? 'text-slate-300' : member.strikes < 3 ? 'text-yellow-400' : 'text-rose-500 font-black'
-                    }`}>
-                      {member.strikes}
-                    </span>
-                    <button
-                      onClick={() => handleStrikeChange(member.id, member.strikes, 1)}
-                      className="text-xs font-bold text-slate-400 hover:text-rose-400 px-1 transition"
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-1 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
-                    <span className={`text-xs font-bold ${
-                      member.strikes === 0 ? 'text-slate-300' : member.strikes < 3 ? 'text-yellow-400' : 'text-rose-500 font-black'
-                    }`}>
-                      {member.strikes}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setSelectedMember(member)}
-                  className="p-2 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-xs font-bold flex items-center space-x-1 transition"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Profile</span>
-                </button>
-
-                {canEdit && (
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={member.rank}
+                    onChange={(e) => onUpdateMember(member.id, { rank: e.target.value as MemberRank })}
+                    className="bg-[#111B21] border border-[#2A3942] text-[#E9EDEF] text-[10px] rounded px-2 py-1 focus:outline-none focus:border-[#00A884]"
+                  >
+                    {allAvailableRanks.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                   <button
                     onClick={() => onDeleteMember(member.id)}
-                    className="p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900 text-rose-400 border border-rose-800/40 transition"
+                    className="p-1.5 rounded hover:bg-red-900/40 text-[#8696A0] hover:text-red-400 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Gaming Resume Modal */}
+      {filteredMembers.length === 0 && (
+        <div className="text-center py-12 bg-[#1F2C34] rounded-xl border border-[#2A3942]">
+          <ShieldAlert className="w-12 h-12 text-[#8696A0] mx-auto mb-3 opacity-50" />
+          <h3 className="text-lg font-semibold text-[#E9EDEF]">No members found</h3>
+          <p className="text-sm text-[#8696A0]">Try adjusting your search or filters.</p>
+        </div>
+      )}
+
+      {/* Member Details Modal */}
       {selectedMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="bg-[#0b0c10] border-2 border-yellow-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative">
-            
-            <button
-              onClick={() => setSelectedMember(null)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-900 border border-slate-800"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center space-x-4 border-b border-slate-800 pb-5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-600 p-0.5">
-                <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-xl font-black text-yellow-400">
-                  {selectedMember.name.charAt(0)}
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1F2C34] border border-[#2A3942] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b border-[#2A3942]">
+              <div className="flex items-center gap-3">
+                <Shield className="w-5 h-5 text-[#00A884]" />
+                <h3 className="text-lg font-bold text-[#E9EDEF]">Member Dossier</h3>
               </div>
-              <div className="flex-1">
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-lg font-black text-white">{selectedMember.name}</h3>
-                  
-                  {canEdit ? (
-                    <select
-                      value={selectedMember.rank}
-                      onChange={(e) => {
-                        onUpdateMember(selectedMember.id, { rank: e.target.value as MemberRank });
-                        setSelectedMember({ ...selectedMember, rank: e.target.value as MemberRank });
-                      }}
-                      className="w-full max-w-[200px] bg-slate-900 border border-slate-700 text-yellow-400 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-yellow-500 cursor-pointer"
-                    >
-                      {allAvailableRanks.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className={`inline-block w-max px-2.5 py-0.5 rounded-full text-xs font-mono border ${getRankBadgeClass(selectedMember.rank)}`}>
-                      {selectedMember.rank}
-                    </span>
-                  )}
-
-                </div>
-                <p className="text-xs font-mono text-yellow-400 mt-2">In-Game Callsign: {selectedMember.ingameId}</p>
-                <p className="text-xs text-slate-400 font-mono">{selectedMember.discordTag}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 font-mono">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-2">
-                <Award className="w-4 h-4 text-yellow-400" />
-                <span>Squad Track Record & Status</span>
-              </h4>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                  <span className="text-xs text-slate-500 block">Duty Status</span>
-                  {canEdit ? (
-                    <select
-                      value={selectedMember.status}
-                      onChange={(e) => {
-                        onUpdateMember(selectedMember.id, { status: e.target.value as MemberStatus });
-                        setSelectedMember({ ...selectedMember, status: e.target.value as MemberStatus });
-                      }}
-                      className="w-full mt-1 bg-slate-800 border border-slate-700 text-yellow-400 rounded px-2 py-1 text-xs font-bold outline-none focus:border-yellow-500 cursor-pointer"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="On Leave">On Leave</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
-                  ) : (
-                    <span className="text-xs font-bold text-yellow-400 mt-1 block">{selectedMember.status}</span>
-                  )}
-                </div>
-
-                <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800">
-                  <span className="text-xs text-slate-500 block">Squad XP</span>
-                  <span className="text-xs font-bold text-yellow-400 mt-1 block">{selectedMember.xp} XP</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
-              <button
+              <button 
                 onClick={() => setSelectedMember(null)}
-                className="px-5 py-2 rounded-xl bg-slate-900 text-slate-200 text-xs font-bold border border-slate-800 hover:bg-slate-800 transition cursor-pointer"
+                className="text-[#8696A0] hover:text-[#E9EDEF] transition-colors p-1"
               >
-                Close Profile
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xl font-bold text-[#E9EDEF]">{selectedMember.name}</h4>
+                  <p className="text-sm text-[#8696A0]">{selectedMember.discordTag}</p>
+                </div>
+                <div className="text-right">
+                  <div className={`inline-block px-3 py-1 rounded text-xs font-semibold border ${getRankBadgeClass(selectedMember.rank)} mb-1`}>
+                    {selectedMember.rank}
+                  </div>
+                  <div className="text-[#00A884] text-xs font-medium font-mono">{selectedMember.ingameId}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-[#2A3942]">
+                <div className="bg-[#111B21] p-3 rounded-lg border border-[#2A3942]">
+                  <p className="text-[10px] text-[#8696A0] uppercase font-semibold mb-1">Status</p>
+                  <p className="text-sm text-[#E9EDEF]">{selectedMember.status}</p>
+                </div>
+                <div className="bg-[#111B21] p-3 rounded-lg border border-[#2A3942]">
+                  <p className="text-[10px] text-[#8696A0] uppercase font-semibold mb-1">Joined</p>
+                  <p className="text-sm text-[#E9EDEF]">{selectedMember.joinedDate}</p>
+                </div>
+                <div className="bg-[#111B21] p-3 rounded-lg border border-[#2A3942]">
+                  <p className="text-[10px] text-[#8696A0] uppercase font-semibold mb-1">Total XP</p>
+                  <p className="text-sm text-[#E9EDEF] font-bold">{selectedMember.xp}</p>
+                </div>
+                <div className="bg-[#111B21] p-3 rounded-lg border border-[#2A3942]">
+                  <p className="text-[10px] text-[#8696A0] uppercase font-semibold mb-1">Strikes</p>
+                  <p className="text-sm font-bold text-red-400">{selectedMember.strikes} / 3</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-[#111B21] border-t border-[#2A3942] flex justify-end">
+              <button 
+                onClick={() => setSelectedMember(null)}
+                className="px-4 py-2 bg-[#2A3942] text-[#E9EDEF] text-sm font-semibold rounded hover:bg-[#2A3942]/80 transition-colors"
+              >
+                Close Dossier
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rank Manager Modal */}
-      {showRankManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="bg-[#0b0c10] border-2 border-blue-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 relative">
-            <button
-              onClick={() => setShowRankManager(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white p-1 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-1">
-              <h2 className="text-xl font-black text-white uppercase flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-blue-400" />
-                Manage Custom Ranks
-              </h2>
-              <p className="text-slate-400 text-xs font-mono">Create unique ranks exclusively for your family squad.</p>
+      {/* Manage Custom Ranks Modal */}
+      {showRankManager && canEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#1F2C34] border border-[#2A3942] rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b border-[#2A3942]">
+              <div className="flex items-center gap-3">
+                <Settings2 className="w-5 h-5 text-[#00A884]" />
+                <h3 className="text-lg font-bold text-[#E9EDEF]">Manage Custom Ranks</h3>
+              </div>
+              <button 
+                onClick={() => setShowRankManager(false)}
+                className="text-[#8696A0] hover:text-[#E9EDEF] transition-colors p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-
-            <div className="space-y-4">
+            
+            <div className="p-5 space-y-4">
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. Head Shooter, Driver..."
                   value={newRankName}
-                  onChange={e => setNewRankName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleAddCustomRank()}
-                  className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2.5 text-xs font-mono outline-none focus:border-blue-500/50"
+                  onChange={(e) => setNewRankName(e.target.value)}
+                  placeholder="e.g. Snipe Commander"
+                  className="flex-1 bg-[#111B21] border border-[#2A3942] rounded px-3 py-2 text-[#E9EDEF] text-sm focus:outline-none focus:border-[#00A884]"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCustomRank()}
                 />
                 <button
                   onClick={handleAddCustomRank}
                   disabled={!newRankName.trim()}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 bg-[#00A884] text-white font-semibold text-sm rounded hover:bg-[#06CF9C] disabled:opacity-50 transition-colors"
                 >
                   Add
                 </button>
               </div>
 
-              <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 space-y-3 max-h-60 overflow-y-auto">
-                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Your Custom Ranks</h3>
+              <div className="mt-4 space-y-2 max-h-60 overflow-y-auto pr-2">
                 {customRanks.length === 0 ? (
-                  <p className="text-slate-600 text-xs font-mono italic">No custom ranks created yet.</p>
+                  <p className="text-sm text-[#8696A0] text-center py-4">No custom ranks defined yet.</p>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {customRanks.map(rank => (
-                      <div key={rank} className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 text-blue-300 px-3 py-1.5 rounded-lg text-xs font-bold">
-                        <span>{rank}</span>
-                        <button
-                          onClick={() => handleDeleteCustomRank(rank)}
-                          className="text-blue-400/50 hover:text-rose-400 transition cursor-pointer"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  customRanks.map(rank => (
+                    <div key={rank} className="flex items-center justify-between p-3 bg-[#111B21] border border-[#2A3942] rounded-lg">
+                      <span className="text-sm font-semibold text-[#E9EDEF]">{rank}</span>
+                      <button
+                        onClick={() => handleDeleteCustomRank(rank)}
+                        className="text-[#8696A0] hover:text-red-400 p-1 rounded hover:bg-red-900/20 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
-
-            <div className="pt-4 border-t border-slate-800 flex justify-end">
-              <button
+            
+            <div className="p-4 bg-[#111B21] border-t border-[#2A3942] flex justify-end">
+              <button 
                 onClick={() => setShowRankManager(false)}
-                className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+                className="px-4 py-2 bg-[#2A3942] text-[#E9EDEF] text-sm font-semibold rounded hover:bg-[#2A3942]/80 transition-colors"
               >
                 Done
               </button>
@@ -439,7 +394,6 @@ export const MemberRoster: React.FC<MemberRosterProps> = ({
           </div>
         </div>
       )}
-
     </div>
   );
 };

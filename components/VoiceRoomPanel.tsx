@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Peer from 'simple-peer';
@@ -477,7 +477,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           }`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-[#E9EDEF]">
-                {room.type === 'root' ? <Crown className="w-4 h-4 text-amber-400" /> : <Users className="w-4 h-4" />}
+                {room.type === 'root' ? <Crown className="w-4 h-4 text-[#00A884]" /> : <Users className="w-4 h-4" />}
                 <h4 className="font-semibold text-sm">{room.label}</h4>
               </div>
               <div className="text-xs text-[#8696A0]">{room.members.length} listening</div>

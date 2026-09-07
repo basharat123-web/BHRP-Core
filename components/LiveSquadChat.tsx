@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile, ChatMessage, Organization, Member } from '@/lib/types';
@@ -79,7 +79,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
         (payload: any) => {
           console.log('[BHRP] Realtime message received:', payload.new);
           const newMsg = payload.new;
-          // Skip own messages — already shown via optimistic update
+          // Skip own messages � already shown via optimistic update
           if (newMsg.user_id === userProfile.id) return;
           // Filter dynamically based on current tab state
           if (newMsg.message_type !== activeTab) return;
@@ -287,7 +287,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
           <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-red-900/30 border border-red-800/50 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{sendError}</span>
-            <button onClick={() => setSendError(null)} className="ml-auto">✕</button>
+            <button onClick={() => setSendError(null)} className="ml-auto">?</button>
           </div>
         )}
 
@@ -388,7 +388,7 @@ const ChatBubble = ({ msg, isMe, isAnnouncement = false }: { msg: ChatMessage, i
         {(!isMe || isAnnouncement) && (
           <div className="flex items-center gap-1.5 px-1">
             <span className={`text-[11px] font-semibold ${
-              isRootMsg ? 'text-[#00A884]' : isLeader ? 'text-amber-400' : 'text-[#8696A0]'
+              isRootMsg ? 'text-[#00A884]' : isLeader ? 'text-[#00A884]' : 'text-[#8696A0]'
             }`}>{msg.senderName}</span>
             <span className="text-[10px] text-[#8696A0] bg-[#2A3942] px-1.5 py-0.5 rounded">{msg.senderRank}</span>
           </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { X, Mail, Shield, Crown, ArrowRight, Sparkles } from 'lucide-react';
@@ -33,26 +33,26 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fadeIn font-sans">
-      <div className="relative w-full max-w-md bg-[#0b0c10] border-2 border-yellow-500/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(250,204,21,0.2)] text-slate-100 space-y-6 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111B21]/90 backdrop-blur-sm animate-fadeIn font-sans">
+      <div className="relative w-full max-w-md bg-[#1F2C34] border border-[#2A3942] rounded-2xl p-6 sm:p-8 shadow-2xl text-[#E9EDEF] space-y-6 overflow-hidden">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 p-1.5 rounded-lg bg-[#111B21] border border-[#2A3942] text-[#8696A0] hover:text-[#E9EDEF] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Top Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-mono font-bold uppercase">
+          <div className="inline-flex items-center space-x-2 px-2 py-0.5 rounded bg-[#00A884]/10 text-[#00A884] text-[10px] font-semibold uppercase">
             <Shield className="w-3.5 h-3.5" /> Authentication Portal
           </div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-            Sign in with <span className="text-yellow-400">Google Account</span>
+          <h2 className="text-2xl font-bold text-[#E9EDEF]">
+            Sign in with Google
           </h2>
-          <p className="text-slate-400 text-xs">
+          <p className="text-[#8696A0] text-sm">
             Authenticate to access your family squad roster & convoy schedule.
           </p>
         </div>
@@ -61,7 +61,7 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
         <button
           onClick={handleOAuthClick}
           disabled={loading}
-          className="w-full py-4 px-6 rounded-2xl bg-white text-slate-900 font-extrabold text-sm flex items-center justify-center space-x-3 shadow-xl transition-all hover:bg-slate-100 hover:scale-[1.02] cursor-pointer"
+          className="w-full py-3.5 px-6 rounded bg-[#E9EDEF] hover:bg-white text-[#111B21] font-semibold text-sm flex items-center justify-center space-x-3 transition-colors cursor-pointer"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -81,46 +81,46 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
               d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.59l3.99 3.14c.95-2.83 3.6-4.98 6.72-4.98z"
             />
           </svg>
-          <span>{loading ? 'Redirecting to Google...' : 'Continue with Google OAuth'}</span>
+          <span>{loading ? 'Redirecting to Google...' : 'Continue with Google'}</span>
         </button>
 
         {/* Divider */}
         <div className="relative flex items-center justify-center">
-          <div className="w-full border-t border-slate-800" />
-          <span className="absolute px-3 bg-[#0b0c10] text-[10px] font-mono uppercase text-slate-500">OR QUICK EMAIL LOGIN</span>
+          <div className="w-full border-t border-[#2A3942]" />
+          <span className="absolute px-3 bg-[#1F2C34] text-[10px] uppercase font-semibold text-[#8696A0]">OR QUICK EMAIL LOGIN</span>
         </div>
 
         {/* 2. Direct Email Login Form */}
-        <form onSubmit={handleDirectSubmit} className="space-y-3 font-mono">
+        <form onSubmit={handleDirectSubmit} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold text-yellow-400 mb-1">Google Email Address</label>
+            <label className="block text-[11px] font-semibold text-[#8696A0] mb-1">Google Email Address</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8696A0]" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. basharat81253@gmail.com"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:border-yellow-400 outline-none"
+                className="w-full pl-9 pr-4 py-2.5 bg-[#111B21] border border-[#2A3942] rounded text-[#E9EDEF] text-sm focus:border-[#00A884] outline-none transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-400 mb-1">Display Name (Optional)</label>
+            <label className="block text-[11px] font-semibold text-[#8696A0] mb-1">Display Name (Optional)</label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="e.g. Basharat Hussain"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:border-yellow-400 outline-none"
+              className="w-full px-3 py-2.5 bg-[#111B21] border border-[#2A3942] rounded text-[#E9EDEF] text-sm focus:border-[#00A884] outline-none transition-colors"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg shadow-yellow-500/20 cursor-pointer"
+            className="w-full py-3 rounded bg-[#00A884] hover:bg-[#06CF9C] text-white font-semibold text-sm flex items-center justify-center space-x-2 transition-colors cursor-pointer"
           >
             <span>Proceed to Account</span>
             <ArrowRight className="w-4 h-4" />
@@ -128,13 +128,13 @@ export const GoogleSignInModal: React.FC<GoogleSignInModalProps> = ({
         </form>
 
         {/* Quick Root Admin Preset */}
-        <div className="pt-2 border-t border-slate-800/80">
+        <div className="pt-4 border-t border-[#2A3942]">
           <button
             onClick={() => onDirectEmailSignIn('basharat81253@gmail.com', 'Basharat Hussain')}
-            className="w-full py-2.5 px-3 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-mono font-bold text-xs flex items-center justify-between transition-all"
+            className="w-full py-2.5 px-3 rounded bg-[#00A884]/10 hover:bg-[#00A884]/20 border border-[#00A884]/20 text-[#00A884] font-semibold text-xs flex items-center justify-between transition-colors"
           >
             <span className="flex items-center gap-1.5">
-              <Crown className="w-4 h-4 text-yellow-400" />
+              <Crown className="w-4 h-4" />
               <span>Login as Root Admin (basharat81253@gmail.com)</span>
             </span>
             <ArrowRight className="w-3.5 h-3.5" />
