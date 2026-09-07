@@ -203,6 +203,14 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           initiator: false,
           trickle: true,
           stream: processedStreamRef.current || localStreamRef.current!,
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:global.stun.twilio.com:3478' },
+              { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+              { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+            ]
+          }
         });
 
         peer.on('signal', (signalData: any) => {
@@ -294,6 +302,14 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
               initiator: true,
               trickle: true,
               stream: processedStreamRef.current!,
+              config: {
+                iceServers: [
+                  { urls: 'stun:stun.l.google.com:19302' },
+                  { urls: 'stun:global.stun.twilio.com:3478' },
+                  { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+                ]
+              }
             });
 
             peer.on('signal', (signalData: any) => {
