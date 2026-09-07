@@ -24,6 +24,7 @@ import {
   fetchOrganizations,
   createOrganization,
   respondToOrganization,
+  deleteOrganization,
   submitFamilyApplication,
   fetchFamilyApplications,
   respondToApplication,
@@ -398,6 +399,20 @@ export default function Home() {
     if (supabase) {
       await respondToOrganization(orgId, status);
     }
+  };
+
+  const handleDeleteOrganization = async (orgId: string) => {
+    setOrganizations((prev) => prev.filter((o) => o.id !== orgId));
+
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('bhrp_global_sync');
+        bc.postMessage({ type: 'ORG_UPDATED' });
+        bc.close();
+      } catch (e) {}
+    }
+
+    await deleteOrganization(orgId);
   };
 
   const handleSubmitApplication = async (familyId: string, message: string) => {
@@ -800,6 +815,7 @@ export default function Home() {
             applications={applications}
             onCreateOrganization={handleCreateOrganization}
             onRespondOrganization={handleRespondOrganization}
+            onDeleteOrganization={handleDeleteOrganization}
             onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}
           />

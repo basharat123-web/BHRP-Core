@@ -236,6 +236,27 @@ export const respondToOrganization = async (orgId: string, status: 'Approved' | 
   }
 };
 
+export const deleteOrganization = async (orgId: string): Promise<boolean> => {
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_orgs');
+    if (raw) {
+      try {
+        let existing: Organization[] = JSON.parse(raw);
+        existing = existing.filter((o) => o.id !== orgId);
+        localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return true;
+  try {
+    const { error } = await supabase.from('organizations').delete().eq('id', orgId);
+    return !error;
+  } catch (err) {
+    return true;
+  }
+};
+
 // Family Applications
 export const submitFamilyApplication = async (
   userId: string,

@@ -13,6 +13,7 @@ interface RootAdminPanelProps {
   applications: FamilyApplication[];
   onCreateOrganization: (name: string, tag: string, description?: string) => Promise<void>;
   onRespondOrganization: (orgId: string, status: 'Approved' | 'Rejected') => Promise<void>;
+  onDeleteOrganization?: (orgId: string) => Promise<void>;
   onUpdateMember: (id: string, updates: Partial<Member>) => Promise<void>;
   onDeleteMember: (id: string) => Promise<void>;
 }
@@ -25,6 +26,7 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
   applications,
   onCreateOrganization,
   onRespondOrganization,
+  onDeleteOrganization,
   onUpdateMember,
   onDeleteMember,
 }) => {
@@ -138,22 +140,32 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
                   </span>
                 </div>
 
-                <div className="pt-2 flex items-center space-x-3 font-mono">
+                <div className="pt-2 flex items-center space-x-2 font-mono">
                   <button
                     onClick={() => onRespondOrganization(org.id, 'Approved')}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-black text-xs uppercase flex items-center justify-center space-x-1 shadow-md shadow-yellow-500/20 transition-all cursor-pointer"
+                    className="flex-1 py-2 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-black text-xs uppercase flex items-center justify-center space-x-1 shadow-md shadow-yellow-500/20 transition-all cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Approve Family</span>
+                    <span>Approve</span>
                   </button>
 
                   <button
                     onClick={() => onRespondOrganization(org.id, 'Rejected')}
-                    className="flex-1 py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-xs flex items-center justify-center space-x-1 transition-all cursor-pointer"
+                    className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center space-x-1 transition-all cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                     <span>Reject</span>
                   </button>
+
+                  {onDeleteOrganization && (
+                    <button
+                      onClick={() => onDeleteOrganization(org.id)}
+                      title="Delete / Purge Family Request"
+                      className="py-2 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-xs flex items-center justify-center space-x-1 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -171,9 +183,7 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
           <span className="text-xs text-slate-400 font-mono">{approvedOrgs.length} Approved</span>
         </div>
 
-        {/* Approved Organizations List */}
-
-        {/* Organization List */}
+        {/* Approved Organization List */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {approvedOrgs.map((org) => (
             <div key={org.id} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-between">
@@ -186,9 +196,23 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
                   <p className="text-xs text-slate-400 font-mono">[{org.tag}]</p>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-bold">
-                Active Squad
-              </span>
+
+              <div className="flex items-center space-x-2 font-mono">
+                <span className="px-2.5 py-1 rounded-full text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-bold">
+                  Active Squad
+                </span>
+
+                {onDeleteOrganization && (
+                  <button
+                    onClick={() => onDeleteOrganization(org.id)}
+                    title="Disband / Delete Family for Violation"
+                    className="py-1.5 px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold text-xs flex items-center justify-center space-x-1 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Disband</span>
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
