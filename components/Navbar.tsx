@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, PlusCircle, Sparkles, MessageSquare, Radio } from 'lucide-react';
+import { Shield, Users, Calendar, Menu, X, Crown, UserCheck, User, LogIn, LogOut, PlusCircle, Sparkles, MessageSquare, Radio, Bell } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { LiveViewersBadge } from '@/components/LiveViewersBadge';
 import { UserProfile } from '@/lib/types';
@@ -13,6 +13,7 @@ interface NavbarProps {
   upcomingEventCount: number;
   viewerCount: number;
   pendingAppsCount: number;
+  unreadNotifications?: number;
   userProfile: UserProfile | null;
   onOpenJoinModal: () => void;
   onGoogleSignIn: () => void;
@@ -26,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   upcomingEventCount,
   viewerCount,
   pendingAppsCount,
+  unreadNotifications = 0,
   userProfile,
   onOpenJoinModal,
   onGoogleSignIn,
@@ -197,6 +199,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Apply to Family</span>
                   </button>
                 )}
+
+                {/* Notification Bell */}
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className="relative p-2 rounded-xl bg-[#12141c] border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white shadow-lg animate-pulse">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </button>
 
                 <button
                   onClick={() => setActiveTab('profile')}

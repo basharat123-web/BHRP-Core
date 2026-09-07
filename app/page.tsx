@@ -14,7 +14,7 @@ import { FamilyJoinModal } from '@/components/FamilyJoinModal';
 import { FamilyApplicationsView } from '@/components/FamilyApplicationsView';
 import { GoogleSignInModal } from '@/components/GoogleSignInModal';
 import { LiveSquadChat } from '@/components/LiveSquadChat';
-import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType } from '@/lib/types';
+import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType, Notification } from '@/lib/types';
 import {
   supabase,
   signInWithGoogle,
@@ -29,8 +29,10 @@ import {
   fetchFamilyApplications,
   respondToApplication,
   fetchMembers,
+  fetchNotifications,
+  markNotificationRead,
 } from '@/lib/supabase';
-import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck } from 'lucide-react';
+import { Shield, Users, Calendar, Award, Zap, AlertTriangle, User, Crown, UserCheck, Bell } from 'lucide-react';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'roster' | 'events' | 'profile' | 'admin' | 'applications' | 'chat'>('roster');
@@ -53,6 +55,7 @@ export default function Home() {
   const [applications, setApplications] = useState<FamilyApplication[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<ConvoyEvent[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // 1. Supabase Auth & Local Storage Session Listener
   useEffect(() => {
@@ -193,8 +196,46 @@ export default function Home() {
       )
       .subscribe();
 
+    // Also listen for profile updates (so member sees approval instantly from any device/browser)
+    let profileChannel: any;
+    const cachedProfileId = (() => {
+      try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('bhrp_active_profile') : null;
+        return raw ? JSON.parse(raw).id : null;
+      } catch { return null; }
+    })();
+
+    if (cachedProfileId) {
+      profileChannel = supabase
+        .channel(`profile-update-${cachedProfileId}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${cachedProfileId}` },
+          (payload: any) => {
+            const updated = payload.new;
+            if (!updated) return;
+            setUserProfile((prev) => {
+              if (!prev) return prev;
+              const newProfile = {
+                ...prev,
+                currentFamilyId: updated.current_family_id,
+                appliedFamilyId: updated.applied_family_id,
+                applicationStatus: updated.application_status || 'None',
+                accountType: updated.account_type || prev.accountType,
+              };
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('bhrp_active_profile', JSON.stringify(newProfile));
+              }
+              return newProfile;
+            });
+          }
+        )
+        .subscribe();
+    }
+
     return () => {
       if (supabase) supabase.removeChannel(orgChannel);
+      if (profileChannel && supabase) supabase.removeChannel(profileChannel);
     };
   }, []);
 
@@ -248,6 +289,26 @@ export default function Home() {
           setApplications((prev) =>
             prev.map((a) => (a.id === appId ? { ...a, status } : a))
           );
+        } else if (type === 'PROFILE_UPDATED' && ev.data.userId) {
+          // If this is the member's own tab, update their profile state immediately
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('bhrp_active_profile');
+            if (raw) {
+              try {
+                const cached = JSON.parse(raw);
+                if (cached.id === ev.data.userId) {
+                  const updatedProfile = {
+                    ...cached,
+                    currentFamilyId: ev.data.familyId,
+                    appliedFamilyId: null,
+                    applicationStatus: ev.data.applicationStatus,
+                  };
+                  localStorage.setItem('bhrp_active_profile', JSON.stringify(updatedProfile));
+                  setUserProfile(updatedProfile);
+                }
+              } catch (e) {}
+            }
+          }
         } else {
           const freshOrgs = await fetchOrganizations();
           setOrganizations(freshOrgs);
@@ -306,6 +367,30 @@ export default function Home() {
           }
         });
     }
+    
+    // 3. Notifications Channel
+    let notifChannel: any;
+    if (supabase && userProfile?.id) {
+      const loadNotifications = async () => {
+        const notifs = await fetchNotifications(userProfile.id);
+        setNotifications(notifs);
+      };
+      loadNotifications();
+
+      notifChannel = supabase.channel(`user-notifications-${userProfile.id}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userProfile.id}` }, (payload: any) => {
+          const newNotif = {
+            id: payload.new.id,
+            userId: payload.new.user_id,
+            title: payload.new.title,
+            message: payload.new.message,
+            isRead: payload.new.is_read,
+            createdAt: payload.new.created_at,
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+        })
+        .subscribe();
+    }
 
     const interval = setInterval(() => {
       setViewerCount((prev) => {
@@ -318,6 +403,9 @@ export default function Home() {
       clearInterval(interval);
       if (presenceChannel && supabase) {
         supabase.removeChannel(presenceChannel);
+      }
+      if (notifChannel && supabase) {
+        supabase.removeChannel(notifChannel);
       }
     };
   }, [userProfile]);
@@ -517,14 +605,26 @@ export default function Home() {
     discordTag: string,
     ingameId: string
   ) => {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === applicationId ? { ...a, status } : a))
-    );
-
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('bhrp_global_sync');
         bc.postMessage({ type: 'APPLICATION_UPDATED', appId: applicationId, status });
+        // Also notify the member's tab about their profile update
+        if (status === 'Approved') {
+          bc.postMessage({
+            type: 'PROFILE_UPDATED',
+            userId,
+            familyId,
+            applicationStatus: 'Approved',
+          });
+        } else {
+          bc.postMessage({
+            type: 'PROFILE_UPDATED',
+            userId,
+            familyId: null,
+            applicationStatus: 'Rejected',
+          });
+        }
         bc.close();
       } catch (e) {}
     }
@@ -544,17 +644,15 @@ export default function Home() {
       setMembers((prev) => [...prev, newMem]);
     }
 
-    if (supabase) {
-      await respondToApplication(
-        applicationId,
-        userId,
-        familyId,
-        status,
-        applicantName,
-        discordTag,
-        ingameId
-      );
-    }
+    await respondToApplication(
+      applicationId,
+      userId,
+      familyId,
+      status,
+      applicantName,
+      discordTag,
+      ingameId
+    );
   };
 
   const handleCreateOrganization = async (name: string, tag: string, description?: string) => {
@@ -714,10 +812,11 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         memberCount={members.length}
-        upcomingEventCount={events.length}
+        upcomingEventCount={events.filter((e) => e.status === 'Upcoming').length}
         viewerCount={viewerCount}
         pendingAppsCount={applications.filter((a) => a.status === 'Pending').length}
         userProfile={userProfile}
+        unreadNotifications={notifications.filter(n => !n.isRead).length}
         onOpenJoinModal={() => setShowJoinModal(true)}
         onGoogleSignIn={() => setShowGoogleModal(true)}
         onSignOut={handleSignOut}

@@ -430,14 +430,26 @@ export const respondToApplication = async (
 };
 
 // Live Squad Chat & Voice
-export const fetchChatMessages = async (): Promise<ChatMessage[]> => {
+export const fetchChatMessages = async (
+  messageType: 'global' | 'family' | 'direct' = 'global',
+  familyId?: string,
+  recipientId?: string,
+  userId?: string
+): Promise<ChatMessage[]> => {
   if (!supabase) return [];
   try {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .order('created_at', { ascending: true })
-      .limit(50);
+    let query = supabase.from('chat_messages').select('*').eq('message_type', messageType);
+
+    if (messageType === 'family' && familyId) {
+      query = query.eq('family_id', familyId);
+    } else if (messageType === 'direct') {
+      // Fetch messages where the user is either the sender or the recipient
+      if (recipientId && userId) {
+        query = query.or(`and(user_id.eq.${userId},recipient_id.eq.${recipientId}),and(user_id.eq.${recipientId},recipient_id.eq.${userId})`);
+      }
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true }).limit(100);
 
     if (error || !data) return [];
     return data.map((msg: any) => ({
@@ -448,6 +460,9 @@ export const fetchChatMessages = async (): Promise<ChatMessage[]> => {
       ingameId: msg.ingame_id,
       avatarUrl: msg.avatar_url,
       text: msg.text,
+      messageType: msg.message_type,
+      familyId: msg.family_id,
+      recipientId: msg.recipient_id,
       createdAt: msg.created_at,
     }));
   } catch (err) {
@@ -461,7 +476,10 @@ export const sendChatMessage = async (
   senderRank: string,
   ingameId: string,
   avatarUrl: string,
-  text: string
+  text: string,
+  messageType: 'global' | 'family' | 'direct' = 'global',
+  familyId?: string,
+  recipientId?: string
 ): Promise<ChatMessage | null> => {
   if (!supabase) return null;
   try {
@@ -475,6 +493,9 @@ export const sendChatMessage = async (
           ingame_id: ingameId,
           avatar_url: avatarUrl,
           text,
+          message_type: messageType,
+          family_id: familyId,
+          recipient_id: recipientId,
         },
       ])
       .select()
@@ -489,9 +510,57 @@ export const sendChatMessage = async (
       ingameId: data.ingame_id,
       avatarUrl: data.avatar_url,
       text: data.text,
+      messageType: data.message_type,
+      familyId: data.family_id,
+      recipientId: data.recipient_id,
       createdAt: data.created_at,
     };
   } catch (err) {
     return null;
+  }
+};
+
+// Notifications
+export const fetchNotifications = async (userId: string) => {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    if (error || !data) return [];
+    return data.map((n: any) => ({
+      id: n.id,
+      userId: n.user_id,
+      title: n.title,
+      message: n.message,
+      isRead: n.is_read,
+      createdAt: n.created_at,
+    }));
+  } catch (err) {
+    return [];
+  }
+};
+
+export const sendNotification = async (userId: string, title: string, message: string) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('notifications').insert([{ user_id: userId, title, message }]);
+    return !error;
+  } catch (err) {
+    return false;
+  }
+};
+
+export const markNotificationRead = async (notificationId: string) => {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+    return !error;
+  } catch (err) {
+    return false;
   }
 };
