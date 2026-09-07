@@ -95,13 +95,17 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   };
 
   const syncRoomPresence = (roomId: string, presenceState: Record<string, any>) => {
-    const members = Object.entries(presenceState).map(([id, value]: [string, any]) => ({
-      id,
-      name: value.name || 'Unknown Member',
-      avatarUrl: value.avatarUrl,
-      isMuted: Boolean(value.isMuted),
-      isHost: Boolean(value.isHost),
-    }));
+    const members = Object.entries(presenceState).flatMap(([id, entries]: [string, any]) => {
+      // Supabase presence state: { [key]: [presenceEntry, ...] } — values are arrays
+      const entryList = Array.isArray(entries) ? entries : [entries];
+      return entryList.map((entry: any) => ({
+        id: entry.id || id,
+        name: entry.name || entry.fullName || 'Member',
+        avatarUrl: entry.avatarUrl,
+        isMuted: Boolean(entry.isMuted),
+        isHost: Boolean(entry.isHost),
+      }));
+    });
 
     setRooms(prev => prev.map(room => room.id === roomId ? { ...room, members } : room));
   };
@@ -288,6 +292,51 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           setActiveRoomId(roomId);
           setStatusMessage(`Connected to ${rooms.find(r => r.id === roomId)?.label || 'voice room'}`);
           syncRoomPresence(roomId, channel.presenceState() as Record<string, any>);
+
+          // Send WebRTC offers to everyone already in the room
+          const currentState = channel.presenceState() as Record<string, any>;
+          const existingMembers = Object.entries(currentState).flatMap(([, entries]) =>
+            (Array.isArray(entries) ? entries : [entries])
+          );
+          for (const member of existingMembers) {
+            const memberId = member.id;
+            if (!memberId || memberId === userProfile.id) continue;
+            if (peersRef.current.has(memberId)) continue;
+
+            const peer = new Peer({
+              initiator: true,
+              trickle: true,
+              stream: localStreamRef.current!,
+            });
+
+            peer.on('signal', (signalData: any) => {
+              channel.send({
+                type: 'broadcast',
+                event: 'voice-signal',
+                payload: {
+                  senderId: userProfile.id,
+                  targetId: memberId,
+                  type: 'offer',
+                  payload: signalData,
+                } as SignalPayload,
+              });
+            });
+
+            peer.on('stream', (stream: MediaStream) => {
+              let audioEl = document.getElementById(`voice-audio-${memberId}`) as HTMLAudioElement | null;
+              if (!audioEl) {
+                audioEl = document.createElement('audio');
+                audioEl.id = `voice-audio-${memberId}`;
+                audioEl.autoplay = true;
+                document.body.appendChild(audioEl);
+              }
+              audioEl.srcObject = stream;
+              audioEl.play().catch(() => undefined);
+            });
+
+            peer.on('error', (err: Error) => console.warn('peer error:', err));
+            peersRef.current.set(memberId, peer);
+          }
         }
       });
 
