@@ -775,22 +775,62 @@ export default function Home() {
 
         {/* Tab View Switcher */}
         {activeTab === 'roster' && (
-          <MemberRoster
-            members={members}
-            onAddMember={() => setShowMemberModal(true)}
-            onUpdateMember={handleUpdateMember}
-            onDeleteMember={handleDeleteMember}
-          />
+          isRootAdmin || userProfile?.accountType === 'Family Leader' || Boolean(userProfile?.currentFamilyId) ? (
+            <MemberRoster
+              members={isRootAdmin ? members : members.filter((m) => !m.orgId || m.orgId === userProfile?.currentFamilyId)}
+              onAddMember={() => setShowMemberModal(true)}
+              onUpdateMember={handleUpdateMember}
+              onDeleteMember={handleDeleteMember}
+            />
+          ) : (
+            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
+              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
+                <Users className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">No Family Joined Yet</h3>
+              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+                You have created a Member Account, but you are not assigned to any RP Family yet. Submit an application to an official family to unlock your squad roster.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowJoinModal(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                >
+                  Apply to Join a Family
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         {activeTab === 'events' && (
-          <EventScheduler
-            events={events}
-            onClaimSlot={handleClaimSlot}
-            onUnclaimSlot={handleUnclaimSlot}
-            onOpenDiscordModal={(event) => setSelectedDiscordEvent(event)}
-            onCreateEvent={handleCreateEvent}
-          />
+          isRootAdmin || userProfile?.accountType === 'Family Leader' || Boolean(userProfile?.currentFamilyId) ? (
+            <EventScheduler
+              events={events}
+              onClaimSlot={handleClaimSlot}
+              onUnclaimSlot={handleUnclaimSlot}
+              onOpenDiscordModal={(event) => setSelectedDiscordEvent(event)}
+              onCreateEvent={handleCreateEvent}
+            />
+          ) : (
+            <div className="p-8 sm:p-12 rounded-3xl bg-[#0b0c10] border-2 border-yellow-500/30 text-center space-y-4 max-w-xl mx-auto shadow-2xl font-sans">
+              <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto">
+                <Calendar className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Convoy Patrols Locked</h3>
+              <p className="text-slate-400 text-xs font-mono leading-relaxed">
+                Claiming convoy patrol slots and escort roles is reserved for active family squad members. Apply to join an official family squad to participate.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowJoinModal(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 cursor-pointer"
+                >
+                  Apply to Join a Family
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         {activeTab === 'chat' && userProfile && (
