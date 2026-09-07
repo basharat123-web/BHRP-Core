@@ -141,6 +141,18 @@ export const blockUser = async (userId: string, block: boolean): Promise<boolean
 export const deleteUserProfile = async (userId: string): Promise<boolean> => {
   if (!supabase) return false;
   try {
+    // Fetch profile first to get identifiers before deleting
+    const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+    
+    if (profile) {
+      // Delete any associated member entries in organizations
+      if (profile.discord_tag || profile.ingame_id) {
+        await supabase.from('members')
+          .delete()
+          .or(`discord_tag.eq."${profile.discord_tag}",ingame_id.eq."${profile.ingame_id}"`);
+      }
+    }
+
     // Delete profile (auth user deletion needs admin SDK, this removes DB record)
     const { error } = await supabase.from('profiles').delete().eq('id', userId);
     return !error;

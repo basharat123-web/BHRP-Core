@@ -104,29 +104,31 @@ export default function Home() {
       let profile = await fetchUserProfile(user.id, userEmail);
 
       if (!profile) {
-        // DB profile missing (trigger failed or old user). We must create it!
-        const savedAccountType: AccountType = isRoot
-          ? 'Root Admin'
-          : (cachedLocal && cachedLocal.accountType && cachedLocal.accountType !== 'Unassigned'
-              ? cachedLocal.accountType
-              : 'Unassigned');
+        // DB profile missing (trigger failed or deleted by Root Admin).
+        // FORCE a completely fresh start! Do NOT reuse local cache for roles or family status!
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('bhrp_active_profile');
+        }
+        cachedLocal = null;
+
+        const savedAccountType: AccountType = isRoot ? 'Root Admin' : 'Unassigned';
 
         profile = {
           id: user.id,
           email: user.email || userEmail,
-          fullName: user.user_metadata?.full_name || user.user_metadata?.name || cachedLocal?.fullName || userEmail.split('@')[0] || 'BHRP Member',
-          avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || cachedLocal?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-          ingameId: isRoot ? 'ROOT-01' : (cachedLocal?.ingameId || 'BH-NEW'),
-          rank: isRoot ? 'Leader' : (cachedLocal?.rank || 'Member'),
+          fullName: user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0] || 'BHRP Member',
+          avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+          ingameId: isRoot ? 'ROOT-01' : 'BH-NEW',
+          rank: isRoot ? 'Leader' : 'Member',
           accountType: savedAccountType,
           isRootAdmin: isRoot,
           isBlocked: false,
-          currentFamilyId: cachedLocal?.currentFamilyId || undefined,
-          appliedFamilyId: cachedLocal?.appliedFamilyId || undefined,
-          applicationStatus: cachedLocal?.applicationStatus || 'None',
-          discordTag: cachedLocal?.discordTag || `${userEmail.split('@')[0]}#0000`,
-          bio: cachedLocal?.bio || (isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member'),
-          xp: cachedLocal?.xp || (isRoot ? 2000 : 100),
+          currentFamilyId: undefined,
+          appliedFamilyId: undefined,
+          applicationStatus: 'None',
+          discordTag: `${userEmail.split('@')[0]}#0000`,
+          bio: isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member',
+          xp: isRoot ? 2000 : 100,
           createdAt: new Date().toISOString()
         };
 
