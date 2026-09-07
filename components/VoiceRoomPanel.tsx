@@ -196,9 +196,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
     if (payload.type === 'offer' || payload.type === 'answer' || payload.type === 'candidate') {
       const remoteUserId = payload.senderId;
-      let peer = peersRef.current.get(remoteUserId);
-
-      if (!peer) {
+        console.log(`[WebRTC] Creating responding Peer for user ${remoteUserId}`);
         peer = new Peer({
           initiator: false,
           trickle: true,
@@ -213,7 +211,12 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           }
         });
 
+        peer.on('error', (err: any) => {
+          console.error(`[WebRTC Error - Responder] Peer error for ${remoteUserId}:`, err);
+        });
+
         peer.on('signal', (signalData: any) => {
+          console.log(`[WebRTC] Generated signal (answer/candidate) for ${remoteUserId}`, signalData);
           if (!roomChannelRef.current) return;
           roomChannelRef.current.send({
             type: 'broadcast',
@@ -228,16 +231,20 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         });
 
         peer.on('stream', (stream: MediaStream) => {
+          console.log(`[WebRTC] Received remote stream from ${remoteUserId}`);
           const audioEl = document.getElementById(`voice-audio-${remoteUserId}`) as HTMLAudioElement | null;
           if (audioEl) {
             audioEl.srcObject = stream;
-            audioEl.play().catch(e => console.error("Audio play failed", e));
+            audioEl.play().catch(e => console.error(`[WebRTC Error] Audio play failed for ${remoteUserId}:`, e));
+          } else {
+            console.error(`[WebRTC Error] Audio element not found for ${remoteUserId}`);
           }
         });
 
         peersRef.current.set(remoteUserId, peer);
       }
 
+      console.log(`[WebRTC] Received ${payload.type} from ${remoteUserId}`, payload.payload);
       if (payload.type === 'offer' && peer) peer.signal(payload.payload);
       if (payload.type === 'answer' && peer) peer.signal(payload.payload);
       if (payload.type === 'candidate' && peer) peer.signal(payload.payload);
@@ -246,12 +253,15 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
   const joinRoom = async (roomId: string) => {
     if (!supabase) return setError('Supabase must be configured for live voice channels.');
+    console.log(`[WebRTC] Attempting to join room ${roomId}...`);
 
     try {
       setError(null);
+      console.log(`[WebRTC] Requesting microphone access...`);
       const rawStream = await navigator.mediaDevices.getUserMedia({
         audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true, sampleRate: 48000, channelCount: 1 },
       });
+      console.log(`[WebRTC] Microphone access granted.`);
       localStreamRef.current = rawStream;
 
       const streamToSend = isNoiseCancellationOn ? await buildProcessedStream(rawStream) : rawStream;
@@ -298,6 +308,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
             if (!memberId || memberId === userProfile.id) continue;
             if (peersRef.current.has(memberId)) continue;
 
+            console.log(`[WebRTC] Creating initiating Peer for existing member ${memberId}`);
             const peer = new Peer({
               initiator: true,
               trickle: true,
@@ -312,7 +323,12 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
               }
             });
 
+            peer.on('error', (err: any) => {
+              console.error(`[WebRTC Error - Initiator] Peer error for ${memberId}:`, err);
+            });
+
             peer.on('signal', (signalData: any) => {
+              console.log(`[WebRTC] Generated signal (offer/candidate) for ${memberId}`, signalData);
               channel.send({
                 type: 'broadcast',
                 event: 'voice-signal',
@@ -321,10 +337,13 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
             });
 
             peer.on('stream', (stream: MediaStream) => {
+              console.log(`[WebRTC] Received remote stream from ${memberId}`);
               const audioEl = document.getElementById(`voice-audio-${memberId}`) as HTMLAudioElement | null;
               if (audioEl) {
                 audioEl.srcObject = stream;
-                audioEl.play().catch(e => console.error("Audio play failed", e));
+                audioEl.play().catch(e => console.error(`[WebRTC Error] Audio play failed for ${memberId}:`, e));
+              } else {
+                console.error(`[WebRTC Error] Audio element not found for ${memberId}`);
               }
             });
 
