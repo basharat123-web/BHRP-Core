@@ -79,7 +79,7 @@ export const LiveSquadChat: React.FC<LiveSquadChatProps> = ({ userProfile, organ
         (payload: any) => {
           console.log('[BHRP] Realtime message received:', payload.new);
           const newMsg = payload.new;
-          // Skip own messages — already shown via optimistic update
+          // Skip own messages ï¿½ already shown via optimistic update
           if (newMsg.user_id === userProfile.id) return;
           // Filter dynamically based on current tab state
           if (newMsg.message_type !== activeTab) return;
