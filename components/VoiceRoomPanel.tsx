@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Peer from 'simple-peer';
-import { Mic, MicOff, PhoneOff, Radio, Users, Shield, Crown, LogOut } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Radio, Users, Shield, Crown, Volume2, VolumeX, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/lib/types';
 
@@ -38,11 +38,15 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   const [isMicOn, setIsMicOn] = useState(true);
   const [statusMessage, setStatusMessage] = useState('No active room');
   const [error, setError] = useState<string | null>(null);
+  const [micStatus, setMicStatus] = useState<'unknown' | 'ready' | 'muted' | 'blocked'>('unknown');
+  const [speakerStatus, setSpeakerStatus] = useState<'unknown' | 'ready' | 'test' | 'muted'>('unknown');
+  const [micLevel, setMicLevel] = useState<number>(0);
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Map<string, Peer.Instance>>(new Map());
   const roomChannelRef = useRef<any>(null);
-  const allSignalsRef = useRef<{ [key: string]: any }>({});
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const monitorIntervalRef = useRef<number | null>(null);
 
   const defaultRooms = useMemo(() => {
     const base: VoiceRoomMeta[] = [
@@ -66,15 +70,27 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     setRooms(defaultRooms);
   }, [defaultRooms]);
 
+  useEffect(() => {
+    return () => {
+      if (monitorIntervalRef.current) window.clearInterval(monitorIntervalRef.current);
+      localStreamRef.current?.getTracks().forEach(track => track.stop());
+      peersRef.current.forEach(peer => peer.destroy());
+      if (roomChannelRef.current && supabase) supabase.removeChannel(roomChannelRef.current);
+    };
+  }, []);
+
   const stopLocalStream = () => {
     localStreamRef.current?.getTracks().forEach(track => track.stop());
     localStreamRef.current = null;
+    analyserRef.current = null;
+    if (monitorIntervalRef.current) {
+      window.clearInterval(monitorIntervalRef.current);
+      monitorIntervalRef.current = null;
+    }
   };
 
   const cleanupPeers = () => {
-    peersRef.current.forEach(peer => {
-      peer.destroy();
-    });
+    peersRef.current.forEach(peer => peer.destroy());
     peersRef.current.clear();
   };
 
@@ -90,60 +106,68 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     setRooms(prev => prev.map(room => room.id === roomId ? { ...room, members } : room));
   };
 
-  const notifyRoomState = (roomId: string, event: string, detail?: string) => {
-    setStatusMessage(detail || event);
-    setRooms(prev => prev.map(room => room.id === roomId ? { ...room } : room));
-  };
-
-  const setupPeerConnection = (remoteUserId: string, initiator: boolean) => {
-    if (!localStreamRef.current) return;
-
-    const existing = peersRef.current.get(remoteUserId);
-    if (existing) {
-      existing.destroy();
-      peersRef.current.delete(remoteUserId);
+  const monitorMicInput = () => {
+    const stream = localStreamRef.current;
+    if (!stream || !stream.getAudioTracks().length) {
+      setMicStatus('blocked');
+      return;
     }
 
-    const peer = new Peer({
-      initiator,
-      trickle: true,
-      stream: localStreamRef.current,
-    });
+    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtor) {
+      setMicStatus('ready');
+      return;
+    }
 
-    peer.on('signal', (signalData: any) => {
-      if (!roomChannelRef.current) return;
-      roomChannelRef.current.send({
-        type: 'broadcast',
-        event: 'voice-signal',
-        payload: {
-          senderId: userProfile.id,
-          targetId: remoteUserId,
-          type: initiator ? 'offer' : 'answer',
-          payload: signalData,
-        } as SignalPayload,
-      });
-    });
+    const audioContext = new AudioCtor();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    analyserRef.current = analyser;
 
-    peer.on('stream', (stream: MediaStream) => {
-      const audioEl = document.getElementById(`voice-audio-${remoteUserId}`) as HTMLAudioElement | null;
-      if (audioEl) {
-        audioEl.srcObject = stream;
-        audioEl.play().catch(() => undefined);
-      } else {
-        const el = document.createElement('audio');
-        el.id = `voice-audio-${remoteUserId}`;
-        el.srcObject = stream;
-        el.autoplay = true;
-        el.muted = false;
-        document.body.appendChild(el);
-      }
-    });
+    if (monitorIntervalRef.current) window.clearInterval(monitorIntervalRef.current);
+    monitorIntervalRef.current = window.setInterval(() => {
+      if (!analyserRef.current) return;
+      const data = new Uint8Array(analyserRef.current.fftSize);
+      analyserRef.current.getByteFrequencyData(data);
+      const average = data.reduce((sum, value) => sum + value, 0) / data.length;
+      const percent = Math.min(100, Math.round((average / 255) * 100));
+      setMicLevel(percent);
+      setMicStatus(percent > 4 ? 'ready' : 'muted');
+    }, 250);
+  };
 
-    peer.on('error', (err: Error) => {
-      console.warn('Peer connection error:', err);
-    });
+  const playSpeakerTest = () => {
+    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtor) {
+      setSpeakerStatus('ready');
+      return;
+    }
 
-    peersRef.current.set(remoteUserId, peer);
+    const ctx = new AudioCtor();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 440;
+    gainNode.gain.value = 0.08;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.start();
+    setSpeakerStatus('test');
+    setStatusMessage('Speaker test playing — can you hear it?');
+
+    window.setTimeout(() => {
+      oscillator.stop();
+      oscillator.disconnect();
+      gainNode.disconnect();
+      ctx.close();
+      setSpeakerStatus('ready');
+      setStatusMessage(activeRoomId ? `Connected to ${rooms.find(r => r.id === activeRoomId)?.label || 'voice room'}` : 'Speaker confirmed');
+    }, 800);
   };
 
   const handleVoiceSignal = async (payload: SignalPayload) => {
@@ -213,17 +237,9 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         peersRef.current.set(remoteUserId, peer);
       }
 
-      if (payload.type === 'offer' && peer) {
-        peer.signal(payload.payload);
-      }
-
-      if (payload.type === 'answer' && peer) {
-        peer.signal(payload.payload);
-      }
-
-      if (payload.type === 'candidate' && peer) {
-        peer.signal(payload.payload);
-      }
+      if (payload.type === 'offer' && peer) peer.signal(payload.payload);
+      if (payload.type === 'answer' && peer) peer.signal(payload.payload);
+      if (payload.type === 'candidate' && peer) peer.signal(payload.payload);
     }
   };
 
@@ -233,17 +249,12 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       return;
     }
 
-    if (!roomId) return;
-
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
-      stopLocalStream();
-      localStreamRef.current = stream;
+      monitorMicInput();
+      setIsMicOn(true);
 
       const channel = supabase.channel(`voice-room-${roomId}`, {
         config: { presence: { key: userProfile.id } },
@@ -276,9 +287,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
           setActiveRoomId(roomId);
           setStatusMessage(`Connected to ${rooms.find(r => r.id === roomId)?.label || 'voice room'}`);
-
-          const state = channel.presenceState();
-          syncRoomPresence(roomId, state as Record<string, any>);
+          syncRoomPresence(roomId, channel.presenceState() as Record<string, any>);
         }
       });
 
@@ -289,27 +298,26 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       roomChannelRef.current = channel;
     } catch (err) {
       console.error('joinRoom failed', err);
-      setError('Microphone permission is required for live voice chat.');
+      setError('Microphone permission is required. Please allow mic access to join the voice room.');
+      setMicStatus('blocked');
     }
   };
 
   const leaveRoom = async () => {
     if (!roomChannelRef.current) return;
 
-    if (activeRoomId) {
-      try {
-        roomChannelRef.current.send({
-          type: 'broadcast',
-          event: 'voice-signal',
-          payload: {
-            senderId: userProfile.id,
-            targetId: '*',
-            type: 'leave' as const,
-          } as SignalPayload,
-        });
-      } catch (error) {
-        console.warn('leave broadcast error', error);
-      }
+    try {
+      roomChannelRef.current.send({
+        type: 'broadcast',
+        event: 'voice-signal',
+        payload: {
+          senderId: userProfile.id,
+          targetId: '*',
+          type: 'leave' as const,
+        } as SignalPayload,
+      });
+    } catch (error) {
+      console.warn('leave broadcast error', error);
     }
 
     await roomChannelRef.current.untrack();
@@ -319,6 +327,8 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     stopLocalStream();
     setActiveRoomId(null);
     setStatusMessage('Voice room left');
+    setIsMicOn(false);
+    setMicStatus('unknown');
 
     setRooms(prev => prev.map(room => ({
       ...room,
@@ -327,12 +337,15 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   };
 
   const toggleMute = () => {
-    setIsMicOn(prev => !prev);
+    const nextState = !isMicOn;
+    setIsMicOn(nextState);
     if (localStreamRef.current) {
       localStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
+        track.enabled = nextState;
       });
     }
+    setMicStatus(nextState ? 'ready' : 'muted');
+    setStatusMessage(nextState ? 'Mic live and audible' : 'Mic muted');
   };
 
   const kickMember = (memberId: string) => {
@@ -354,6 +367,8 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
     return false;
   });
 
+  const activeRoomUsers = activeRoomId ? (rooms.find(r => r.id === activeRoomId)?.members || []) : [];
+
   return (
     <div className="mb-6 rounded-3xl border border-yellow-500/30 bg-[#0b0c10] p-4 shadow-2xl">
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -370,10 +385,57 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
       </div>
 
       {error && (
-        <div className="mb-4 border border-rose-700 bg-rose-950/30 px-3 py-2 text-xs text-rose-200">
-          {error}
+        <div className="mb-4 border border-rose-700 bg-rose-950/30 px-3 py-2 text-xs text-rose-200 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          <span>{error}</span>
         </div>
       )}
+
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
+          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+            <span>Mic</span>
+            {micStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : micStatus === 'blocked' ? <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> : <MicOff className="w-3.5 h-3.5 text-slate-500" />}
+          </div>
+          <div className="flex items-center gap-2">
+            {micStatus === 'ready' ? <Mic className="w-4 h-4 text-emerald-400" /> : <MicOff className="w-4 h-4 text-slate-500" />}
+            <span className="text-sm font-bold text-white">
+              {micStatus === 'ready' ? 'Live' : micStatus === 'muted' ? 'Muted' : micStatus === 'blocked' ? 'Blocked' : 'Unknown'}
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
+            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-yellow-400" style={{ width: `${Math.max(8, micLevel)}%` }} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
+          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+            <span>Speaker</span>
+            {speakerStatus === 'ready' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : speakerStatus === 'test' ? <Volume2 className="w-3.5 h-3.5 text-yellow-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+          </div>
+          <div className="flex items-center gap-2">
+            {speakerStatus === 'ready' ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+            <span className="text-sm font-bold text-white">
+              {speakerStatus === 'ready' ? 'Working' : speakerStatus === 'test' ? 'Testing' : 'Unknown'}
+            </span>
+          </div>
+          <button
+            onClick={playSpeakerTest}
+            className="mt-3 w-full rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-2 py-1.5 text-[10px] font-black uppercase text-yellow-300"
+          >
+            Test speaker
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
+          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+            <span>Room status</span>
+            {activeRoomId ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <AlertTriangle className="w-3.5 h-3.5 text-slate-500" />}
+          </div>
+          <div className="text-sm font-bold text-white">{activeRoomId ? `${activeRoomUsers.length} in room` : 'Not joined'}</div>
+          <div className="mt-2 text-[10px] text-slate-400">{activeRoomId ? `Connected to ${rooms.find(r => r.id === activeRoomId)?.label}` : 'Join a room to begin voice chat'}</div>
+        </div>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {availableRooms.map(room => (
