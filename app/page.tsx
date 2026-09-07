@@ -157,22 +157,49 @@ export default function Home() {
       const userEmail = (user.email || '').toLowerCase();
       const isRoot = userEmail === 'basharat81253@gmail.com';
 
+      // Read cached local profile to preserve chosen role if DB is async/unpopulated
+      let cachedLocal: UserProfile | null = null;
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem('bhrp_active_profile');
+        if (raw) {
+          try {
+            cachedLocal = JSON.parse(raw);
+          } catch (e) {
+            console.warn('Could not parse local profile');
+          }
+        }
+      }
+
       let profile = await fetchUserProfile(user.id, userEmail);
 
       if (!profile) {
+        const savedAccountType: AccountType = isRoot
+          ? 'Root Admin'
+          : (cachedLocal && cachedLocal.accountType && cachedLocal.accountType !== 'Unassigned'
+              ? cachedLocal.accountType
+              : 'Unassigned');
+
         profile = {
           id: user.id,
           email: user.email || userEmail,
-          fullName: user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0] || 'BHRP Member',
-          avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-          ingameId: isRoot ? 'ROOT-01' : 'BH-NEW',
-          rank: isRoot ? 'Leader' : 'Member',
-          accountType: isRoot ? 'Root Admin' : 'Unassigned',
+          fullName: user.user_metadata?.full_name || user.user_metadata?.name || cachedLocal?.fullName || userEmail.split('@')[0] || 'BHRP Member',
+          avatarUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || cachedLocal?.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+          ingameId: isRoot ? 'ROOT-01' : (cachedLocal?.ingameId || 'BH-NEW'),
+          rank: isRoot ? 'Leader' : (cachedLocal?.rank || 'Member'),
+          accountType: savedAccountType,
           isRootAdmin: isRoot,
-          discordTag: `${userEmail.split('@')[0]}#0000`,
-          bio: isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member',
-          xp: isRoot ? 2000 : 100,
+          currentFamilyId: cachedLocal?.currentFamilyId,
+          appliedFamilyId: cachedLocal?.appliedFamilyId,
+          applicationStatus: cachedLocal?.applicationStatus || 'None',
+          discordTag: cachedLocal?.discordTag || `${userEmail.split('@')[0]}#0000`,
+          bio: cachedLocal?.bio || (isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Squad Member'),
+          xp: cachedLocal?.xp || (isRoot ? 2000 : 100),
         };
+      } else {
+        // If DB profile exists but accountType is Unassigned, see if local storage saved a role selection
+        if (!isRoot && (profile.accountType === 'Unassigned' || !profile.accountType) && cachedLocal && cachedLocal.accountType && cachedLocal.accountType !== 'Unassigned') {
+          profile.accountType = cachedLocal.accountType;
+        }
       }
 
       if (isRoot) {
@@ -275,6 +302,20 @@ export default function Home() {
   // Auth Handlers
   const handleDirectEmailSignIn = (email: string, name?: string) => {
     const isRoot = email.toLowerCase() === 'basharat81253@gmail.com';
+
+    let cachedAccountType: AccountType = isRoot ? 'Root Admin' : 'Unassigned';
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('bhrp_active_profile');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.email?.toLowerCase() === email.toLowerCase() && parsed.accountType && parsed.accountType !== 'Unassigned') {
+            cachedAccountType = parsed.accountType;
+          }
+        } catch (e) {}
+      }
+    }
+
     const profile: UserProfile = {
       id: `user-${Date.now()}`,
       email,
@@ -282,7 +323,7 @@ export default function Home() {
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       ingameId: isRoot ? 'ROOT-01' : 'BH-NEW',
       rank: isRoot ? 'Leader' : 'Member',
-      accountType: isRoot ? 'Root Admin' : 'Unassigned',
+      accountType: cachedAccountType,
       isRootAdmin: isRoot,
       discordTag: `${email.split('@')[0]}#0000`,
       bio: isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Member',
