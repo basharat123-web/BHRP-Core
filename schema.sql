@@ -91,22 +91,22 @@ CREATE TABLE IF NOT EXISTS public.family_applications (
 -- 8. Live Squad Chat Messages Table
 CREATE TABLE IF NOT EXISTS public.chat_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     sender_name TEXT NOT NULL,
     sender_rank TEXT DEFAULT 'Member',
     ingame_id TEXT DEFAULT 'BH-MEMBER',
     avatar_url TEXT,
     text TEXT NOT NULL,
     message_type TEXT DEFAULT 'global', -- 'global', 'family', 'direct', 'announcement'
-    family_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE,
-    recipient_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    family_id TEXT,
+    recipient_id TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 9. Notifications Table
 CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT false,
