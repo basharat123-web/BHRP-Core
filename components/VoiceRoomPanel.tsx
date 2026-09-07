@@ -192,6 +192,9 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
     if (payload.type === 'offer' || payload.type === 'answer' || payload.type === 'candidate') {
       const remoteUserId = payload.senderId;
+      let peer = peersRef.current.get(remoteUserId);
+
+      if (!peer) {
         console.log(`[WebRTC] Creating responding Peer for user ${remoteUserId}`);
         peer = new Peer({
           initiator: false,
