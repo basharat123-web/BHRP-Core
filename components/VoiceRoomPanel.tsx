@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Peer from 'simple-peer';
-import { Mic, MicOff, PhoneOff, Radio, Users, Shield, Crown, Volume2, VolumeX, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Radio, Users, Shield, Crown, Volume2, VolumeX, CheckCircle2, AlertTriangle, Wand2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/lib/types';
 
@@ -36,6 +36,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<VoiceRoomMeta[]>([]);
   const [isMicOn, setIsMicOn] = useState(true);
+  const [isNoiseCancellationOn, setIsNoiseCancellationOn] = useState(true);
   const [statusMessage, setStatusMessage] = useState('No active room');
   const [error, setError] = useState<string | null>(null);
   const [micStatus, setMicStatus] = useState<'unknown' | 'ready' | 'muted' | 'blocked'>('unknown');
@@ -43,10 +44,14 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   const [micLevel, setMicLevel] = useState<number>(0);
 
   const localStreamRef = useRef<MediaStream | null>(null);
+  const processedStreamRef = useRef<MediaStream | null>(null); // NC-processed stream sent via WebRTC
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const noiseGateGainRef = useRef<GainNode | null>(null);
   const peersRef = useRef<Map<string, Peer.Instance>>(new Map());
   const roomChannelRef = useRef<any>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const monitorIntervalRef = useRef<number | null>(null);
+  const noiseGateIntervalRef = useRef<number | null>(null);
 
   const defaultRooms = useMemo(() => {
     const base: VoiceRoomMeta[] = [
@@ -73,20 +78,106 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
   useEffect(() => {
     return () => {
       if (monitorIntervalRef.current) window.clearInterval(monitorIntervalRef.current);
+      if (noiseGateIntervalRef.current) window.clearInterval(noiseGateIntervalRef.current);
       localStreamRef.current?.getTracks().forEach(track => track.stop());
+      processedStreamRef.current?.getTracks().forEach(track => track.stop());
+      audioContextRef.current?.close();
       peersRef.current.forEach(peer => peer.destroy());
       if (roomChannelRef.current && supabase) supabase.removeChannel(roomChannelRef.current);
     };
   }, []);
 
+  /**
+   * Build a Discord-style noise-cancelled audio stream using Web Audio API.
+   * Pipeline: Mic → High-Pass Filter → Dynamics Compressor → Noise Gate → Output
+   */
+  const buildProcessedStream = (rawStream: MediaStream): MediaStream => {
+    const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtor) return rawStream; // fallback: no Web Audio support
+
+    const ctx = new AudioCtor({ sampleRate: 48000 }) as AudioContext;
+    audioContextRef.current = ctx;
+
+    const source = ctx.createMediaStreamSource(rawStream);
+
+    // 1. High-Pass Filter — removes low-frequency rumble, AC hum, keyboard thuds
+    const highPass = ctx.createBiquadFilter();
+    highPass.type = 'highpass';
+    highPass.frequency.value = 85; // Cut everything below 85Hz
+    highPass.Q.value = 0.7;
+
+    // 2. Low-pass filter — removes harsh high-frequency hiss
+    const lowPass = ctx.createBiquadFilter();
+    lowPass.type = 'lowpass';
+    lowPass.frequency.value = 8000; // Keep voice range, cut above 8kHz
+    lowPass.Q.value = 0.7;
+
+    // 3. Dynamics Compressor — normalizes volume like Discord's AGC
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -35; // Start compressing at -35dB
+    compressor.knee.value = 10;
+    compressor.ratio.value = 6;     // 6:1 compression ratio
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    // 4. Noise Gate (Gain Node) — silence anything below voice threshold
+    const noiseGate = ctx.createGain();
+    noiseGate.gain.value = 1.0;
+    noiseGateGainRef.current = noiseGate;
+
+    // 5. Analyser for gate detection
+    const gateAnalyser = ctx.createAnalyser();
+    gateAnalyser.fftSize = 256;
+
+    // Build the chain
+    source.connect(highPass);
+    highPass.connect(lowPass);
+    lowPass.connect(compressor);
+    compressor.connect(gateAnalyser);
+    gateAnalyser.connect(noiseGate);
+
+    // Destination: processed stream to send via WebRTC
+    const destination = ctx.createMediaStreamDestination();
+    noiseGate.connect(destination);
+
+    // Noise gate logic: open/close based on volume level
+    const gateData = new Uint8Array(gateAnalyser.fftSize);
+    const GATE_THRESHOLD = 15; // 0–255 scale; tune for sensitivity
+    let gateOpen = false;
+
+    if (noiseGateIntervalRef.current) window.clearInterval(noiseGateIntervalRef.current);
+    noiseGateIntervalRef.current = window.setInterval(() => {
+      if (!noiseGateGainRef.current) return;
+      gateAnalyser.getByteFrequencyData(gateData);
+      const avg = gateData.reduce((s, v) => s + v, 0) / gateData.length;
+      const shouldOpen = avg > GATE_THRESHOLD;
+      if (shouldOpen !== gateOpen) {
+        gateOpen = shouldOpen;
+        // Smooth transition to avoid clicks
+        noiseGateGainRef.current.gain.setTargetAtTime(gateOpen ? 1.0 : 0.0, ctx.currentTime, 0.015);
+      }
+    }, 30);
+
+    return destination.stream;
+  };
+
   const stopLocalStream = () => {
     localStreamRef.current?.getTracks().forEach(track => track.stop());
+    processedStreamRef.current?.getTracks().forEach(track => track.stop());
     localStreamRef.current = null;
+    processedStreamRef.current = null;
     analyserRef.current = null;
+    noiseGateGainRef.current = null;
     if (monitorIntervalRef.current) {
       window.clearInterval(monitorIntervalRef.current);
       monitorIntervalRef.current = null;
     }
+    if (noiseGateIntervalRef.current) {
+      window.clearInterval(noiseGateIntervalRef.current);
+      noiseGateIntervalRef.current = null;
+    }
+    audioContextRef.current?.close();
+    audioContextRef.current = null;
   };
 
   const cleanupPeers = () => {
@@ -203,7 +294,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         peer = new Peer({
           initiator: false,
           trickle: true,
-          stream: localStreamRef.current,
+          stream: processedStreamRef.current || localStreamRef.current!, // Use NC-processed stream
         });
 
         peer.on('signal', (signalData: any) => {
@@ -255,8 +346,23 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
 
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      localStreamRef.current = stream;
+
+      // Browser-level noise suppression (free, built-in to all modern browsers)
+      const rawStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          noiseSuppression: true,
+          echoCancellation: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1,
+        },
+      });
+      localStreamRef.current = rawStream;
+
+      // Build the Web Audio API noise-cancellation pipeline on top
+      const streamToSend = isNoiseCancellationOn ? buildProcessedStream(rawStream) : rawStream;
+      processedStreamRef.current = streamToSend;
+
       monitorMicInput();
       setIsMicOn(true);
 
@@ -306,7 +412,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
             const peer = new Peer({
               initiator: true,
               trickle: true,
-              stream: localStreamRef.current!,
+              stream: processedStreamRef.current!, // Use NC-processed stream
             });
 
             peer.on('signal', (signalData: any) => {
@@ -426,8 +532,22 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           <h3 className="text-lg font-black uppercase tracking-wider">Family Voice Channels</h3>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1">
+        <div className="flex items-center gap-2">
+          {/* Noise Cancellation Toggle */}
+          <button
+            onClick={() => setIsNoiseCancellationOn(prev => !prev)}
+            title={isNoiseCancellationOn ? 'Noise Cancellation ON — click to disable' : 'Noise Cancellation OFF — click to enable'}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider transition-all ${
+              isNoiseCancellationOn
+                ? 'border-violet-500/60 bg-violet-500/20 text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
+                : 'border-slate-700 bg-slate-900 text-slate-500'
+            }`}
+          >
+            <Wand2 className={`w-3 h-3 ${isNoiseCancellationOn ? 'animate-pulse' : ''}`} />
+            NC {isNoiseCancellationOn ? 'ON' : 'OFF'}
+          </button>
+
+          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-500/40 bg-yellow-500/10 px-2 py-1 text-xs font-mono text-slate-300">
             <span className="h-2 w-2 rounded-full bg-emerald-400" /> {activeRoomId ? 'online' : 'standby'}
           </span>
         </div>
@@ -440,7 +560,7 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
         </div>
       )}
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
+      <div className="mb-4 grid gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-slate-800 bg-[#0a0d12] p-3">
           <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
             <span>Mic</span>
@@ -454,6 +574,25 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800">
             <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-yellow-400" style={{ width: `${Math.max(8, micLevel)}%` }} />
+          </div>
+        </div>
+
+        {/* Noise Cancellation Status Card */}
+        <div className={`rounded-2xl border bg-[#0a0d12] p-3 transition-all ${
+          isNoiseCancellationOn ? 'border-violet-500/40 shadow-[0_0_15px_rgba(139,92,246,0.15)]' : 'border-slate-800'
+        }`}>
+          <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+            <span>Noise Cancel</span>
+            {isNoiseCancellationOn ? <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
+          </div>
+          <div className="flex items-center gap-2">
+            <Wand2 className={`w-4 h-4 ${isNoiseCancellationOn ? 'text-violet-400' : 'text-slate-500'}`} />
+            <span className={`text-sm font-bold ${isNoiseCancellationOn ? 'text-violet-300' : 'text-slate-500'}`}>
+              {isNoiseCancellationOn ? 'Active' : 'Off'}
+            </span>
+          </div>
+          <div className="mt-2 text-[9px] text-slate-500 leading-tight">
+            {isNoiseCancellationOn ? 'HPF + Compressor + Gate' : 'Raw mic signal'}
           </div>
         </div>
 
