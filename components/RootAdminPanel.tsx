@@ -110,16 +110,21 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
       </div>
 
       {/* Pending Family Creation Approvals Section */}
-      {pendingOrgs.length > 0 && (
-        <div className="bg-[#0b0c10] border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-lg font-black text-white uppercase flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
-              Pending Family Approvals ({pendingOrgs.length})
-            </h2>
-            <span className="text-xs text-amber-400 font-mono">Requires Root Admin Sign-off</span>
-          </div>
+      <div className="bg-[#0b0c10] border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h2 className="text-lg font-black text-white uppercase flex items-center gap-2">
+            <Clock className="w-5 h-5 text-amber-400 animate-pulse" />
+            Pending Family Approvals ({pendingOrgs.length})
+          </h2>
+          <span className="text-xs text-amber-400 font-mono">Requires Root Admin Sign-off</span>
+        </div>
 
+        {pendingOrgs.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800/80 text-center space-y-1 font-mono">
+            <p className="text-sm font-bold text-slate-300">No Pending Family Approvals</p>
+            <p className="text-xs text-slate-500">All submitted family requests have been approved or processed.</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pendingOrgs.map((org) => (
               <div key={org.id} className="p-4 rounded-2xl bg-slate-900/80 border border-amber-500/40 space-y-3">
@@ -153,8 +158,8 @@ export const RootAdminPanel: React.FC<RootAdminPanelProps> = ({
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Family / Organization Management */}
       <div className="bg-[#0b0c10] border border-slate-800 rounded-3xl p-5 sm:p-6 space-y-6 shadow-xl">

@@ -258,6 +258,26 @@ export default function Home() {
       }
     };
     loadOrgData();
+
+    if (!supabase) return;
+
+    const orgChannel = supabase
+      .channel('bhrp-orgs-realtime-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'organizations' },
+        async () => {
+          const freshOrgs = await fetchOrganizations();
+          if (freshOrgs.length > 0) {
+            setOrganizations(freshOrgs);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (supabase) supabase.removeChannel(orgChannel);
+    };
   }, []);
 
   // 3. Real-Time Presence Counter

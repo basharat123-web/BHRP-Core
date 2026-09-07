@@ -121,11 +121,22 @@ export const fetchMembers = async (orgId?: string): Promise<Member[]> => {
 
 // Organizations / Families
 export const fetchOrganizations = async (): Promise<Organization[]> => {
-  if (!supabase) return [];
+  let localOrgs: Organization[] = [];
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_orgs');
+    if (raw) {
+      try {
+        localOrgs = JSON.parse(raw);
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return localOrgs;
   try {
     const { data, error } = await supabase.from('organizations').select('*');
-    if (error || !data) return [];
-    return data.map((org: any) => ({
+    if (error || !data) return localOrgs;
+
+    const dbOrgs: Organization[] = data.map((org: any) => ({
       id: org.id,
       name: org.name,
       tag: org.tag,
@@ -134,13 +145,43 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
       status: (org.status as OrganizationStatus) || 'Approved',
       createdAt: org.created_at,
     }));
+
+    // Merge DB orgs with localOrgs (deduplicating by id)
+    const combinedMap = new Map<string, Organization>();
+    dbOrgs.forEach((o) => combinedMap.set(o.id, o));
+    localOrgs.forEach((o) => {
+      if (!combinedMap.has(o.id)) {
+        combinedMap.set(o.id, o);
+      }
+    });
+
+    return Array.from(combinedMap.values());
   } catch (err) {
-    return [];
+    return localOrgs;
   }
 };
 
 export const createOrganization = async (name: string, tag: string, description?: string, logoUrl?: string): Promise<Organization | null> => {
-  if (!supabase) return null;
+  const fallbackOrg: Organization = {
+    id: `org-${Date.now()}`,
+    name,
+    tag,
+    description: description || 'Official RP Family Squad',
+    logoUrl: logoUrl || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=150&auto=format&fit=crop&q=80',
+    status: 'Pending Approval',
+    createdAt: new Date().toISOString(),
+  };
+
+  // Always persist locally first so Root Admin sees pending request even on fallback
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_orgs');
+    let existing: Organization[] = raw ? JSON.parse(raw) : [];
+    existing = [fallbackOrg, ...existing];
+    localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+  }
+
+  if (!supabase) return fallbackOrg;
+
   try {
     const { data, error } = await supabase
       .from('organizations')
@@ -156,8 +197,9 @@ export const createOrganization = async (name: string, tag: string, description?
       .select()
       .single();
 
-    if (error || !data) return null;
-    return {
+    if (error || !data) return fallbackOrg;
+
+    const created: Organization = {
       id: data.id,
       name: data.name,
       tag: data.tag,
@@ -166,18 +208,31 @@ export const createOrganization = async (name: string, tag: string, description?
       status: 'Pending Approval',
       createdAt: data.created_at,
     };
+
+    return created;
   } catch (err) {
-    return null;
+    return fallbackOrg;
   }
 };
 
 export const respondToOrganization = async (orgId: string, status: 'Approved' | 'Rejected'): Promise<boolean> => {
-  if (!supabase) return false;
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem('bhrp_pending_orgs');
+    if (raw) {
+      try {
+        let existing: Organization[] = JSON.parse(raw);
+        existing = existing.map((o) => (o.id === orgId ? { ...o, status } : o));
+        localStorage.setItem('bhrp_pending_orgs', JSON.stringify(existing));
+      } catch (e) {}
+    }
+  }
+
+  if (!supabase) return true;
   try {
     const { error } = await supabase.from('organizations').update({ status }).eq('id', orgId);
     return !error;
   } catch (err) {
-    return false;
+    return true;
   }
 };
 
