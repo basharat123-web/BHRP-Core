@@ -12,6 +12,7 @@ import { RootAdminPanel } from '@/components/RootAdminPanel';
 import { RoleOnboardingModal } from '@/components/RoleOnboardingModal';
 import { FamilyJoinModal } from '@/components/FamilyJoinModal';
 import { FamilyApplicationsView } from '@/components/FamilyApplicationsView';
+import { GoogleSignInModal } from '@/components/GoogleSignInModal';
 import { Member, ConvoyEvent, UserProfile, Organization, FamilyApplication, AccountType } from '@/lib/types';
 import {
   supabase,
@@ -34,6 +35,12 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Modals
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [selectedDiscordEvent, setSelectedDiscordEvent] = useState<ConvoyEvent | null>(null);
+
   // Live Viewers Count
   const [viewerCount, setViewerCount] = useState<number>(14);
 
@@ -49,11 +56,6 @@ export default function Home() {
   ]);
 
   const [applications, setApplications] = useState<FamilyApplication[]>([]);
-
-  // Modals state
-  const [showMemberModal, setShowMemberModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  const [selectedDiscordEvent, setSelectedDiscordEvent] = useState<ConvoyEvent | null>(null);
 
   // Members & Events Data
   const [members, setMembers] = useState<Member[]>([
@@ -246,29 +248,38 @@ export default function Home() {
   }, [userProfile]);
 
   // Auth Handlers
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignInClick = () => {
     if (supabase) {
-      await signInWithGoogle();
+      signInWithGoogle();
     } else {
-      handleDemoSignIn();
+      setShowGoogleModal(true);
     }
   };
 
-  const handleDemoSignIn = () => {
-    setUserProfile({
-      id: 'root-admin-1',
-      email: 'basharat81253@gmail.com',
-      fullName: 'Basharat Hussain',
+  const handleDirectEmailSignIn = (email: string, name?: string) => {
+    const isRoot = email.toLowerCase() === 'basharat81253@gmail.com';
+    const profile: UserProfile = {
+      id: `user-${Date.now()}`,
+      email,
+      fullName: name || email.split('@')[0],
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      ingameId: 'ROOT-01',
-      rank: 'Leader',
-      accountType: 'Root Admin',
-      isRootAdmin: true,
-      discordTag: 'basharat#0001',
-      bio: 'Supreme Master Administrator & Black Hawk RP Founder.',
-      xp: 2000,
-    });
-    setActiveTab('admin');
+      ingameId: isRoot ? 'ROOT-01' : 'BH-NEW',
+      rank: isRoot ? 'Leader' : 'Member',
+      accountType: isRoot ? 'Root Admin' : 'Unassigned',
+      isRootAdmin: isRoot,
+      discordTag: `${email.split('@')[0]}#0000`,
+      bio: isRoot ? 'Supreme Master Administrator & Black Hawk RP Founder.' : 'BHRP Member',
+      xp: isRoot ? 2000 : 100,
+    };
+
+    setUserProfile(profile);
+    setShowGoogleModal(false);
+
+    if (isRoot) {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('roster');
+    }
   };
 
   const handleSignOut = async () => {
@@ -500,13 +511,20 @@ export default function Home() {
   // If user is NOT logged in, show the Public Landing Page by default!
   if (!userProfile && !authLoading) {
     return (
-      <PublicLanding
-        viewerCount={viewerCount}
-        onGoogleSignIn={handleGoogleSignIn}
-        onDemoSignIn={handleDemoSignIn}
-        members={members}
-        events={events}
-      />
+      <>
+        <PublicLanding
+          viewerCount={viewerCount}
+          onGoogleSignIn={() => setShowGoogleModal(true)}
+          members={members}
+          events={events}
+        />
+        {showGoogleModal && (
+          <GoogleSignInModal
+            onClose={() => setShowGoogleModal(false)}
+            onDirectEmailSignIn={handleDirectEmailSignIn}
+          />
+        )}
+      </>
     );
   }
 
@@ -516,7 +534,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[#07080c] font-sans selection:bg-yellow-500 selection:text-slate-950">
       
-      {/* Role Selection Onboarding Modal */}
+      {/* Role Selection Onboarding Modal (Only for non-Root Admin users) */}
       {needsRoleOnboarding && (
         <RoleOnboardingModal onSelectRole={handleSelectRole} />
       )}
@@ -531,7 +549,7 @@ export default function Home() {
         pendingAppsCount={applications.filter((a) => a.status === 'Pending').length}
         userProfile={userProfile}
         onOpenJoinModal={() => setShowJoinModal(true)}
-        onGoogleSignIn={handleGoogleSignIn}
+        onGoogleSignIn={() => setShowGoogleModal(true)}
         onSignOut={handleSignOut}
       />
 
@@ -654,6 +672,13 @@ export default function Home() {
       </footer>
 
       {/* Modals */}
+      {showGoogleModal && (
+        <GoogleSignInModal
+          onClose={() => setShowGoogleModal(false)}
+          onDirectEmailSignIn={handleDirectEmailSignIn}
+        />
+      )}
+
       {showMemberModal && (
         <MemberModal
           onClose={() => setShowMemberModal(false)}

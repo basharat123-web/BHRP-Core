@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Shield, Users, Calendar, Award, Zap, LogIn, Sparkles, CheckCircle2, Lock, ArrowRight, Radio, Globe, Crown } from 'lucide-react';
+import { Shield, Users, Calendar, Award, LogIn, CheckCircle2, Radio, Globe, Crown } from 'lucide-react';
 import { LiveViewersBadge } from '@/components/LiveViewersBadge';
 import { ConvoyEvent, Member } from '@/lib/types';
 
 interface PublicLandingProps {
   viewerCount: number;
   onGoogleSignIn: () => void;
-  onDemoSignIn: () => void;
   members: Member[];
   events: ConvoyEvent[];
 }
@@ -16,7 +15,6 @@ interface PublicLandingProps {
 export const PublicLanding: React.FC<PublicLandingProps> = ({
   viewerCount,
   onGoogleSignIn,
-  onDemoSignIn,
   members,
   events,
 }) => {
@@ -54,35 +52,27 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
               
               <button
                 onClick={onGoogleSignIn}
-                className="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-xl bg-[#12141c] border border-yellow-500/40 hover:border-yellow-400 text-yellow-400 font-mono font-bold text-xs shadow-md transition-all"
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all hover:scale-105 cursor-pointer"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
-                    fill="#4285F4"
+                    fill="#000000"
                     d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
                   />
                   <path
-                    fill="#34A853"
+                    fill="#000000"
                     d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.29v3.14C3.26 21.3 7.31 24 12 24z"
                   />
                   <path
-                    fill="#FBBC05"
+                    fill="#000000"
                     d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.59H1.29B11.87 1.84 8 4.01 5.48 8.01c-1.45 2.89-1.45 6.09 0 8.98l3.99-3.12z"
                   />
                   <path
-                    fill="#EA4335"
+                    fill="#000000"
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.59l3.99 3.14c.95-2.83 3.6-4.98 6.72-4.98z"
                   />
                 </svg>
                 <span>Google Login</span>
-              </button>
-
-              <button
-                onClick={onDemoSignIn}
-                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-90 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-yellow-500/20 transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Enter Hub</span>
               </button>
             </div>
           </div>
@@ -90,12 +80,12 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-12 pb-20 overflow-hidden">
+      <section className="relative pt-16 pb-24 overflow-hidden">
         {/* Yellow Ambient Glow Background */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-yellow-500/15 via-amber-500/20 to-yellow-600/15 blur-[130px] rounded-full pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
+          <div className="text-center space-y-8 max-w-3xl mx-auto">
             
             {/* Live Status Pill */}
             <div className="inline-flex items-center space-x-3 px-4 py-2 rounded-full bg-[#0d0f17]/90 border border-yellow-500/40 backdrop-blur-md shadow-xl">
@@ -119,13 +109,13 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
               The premier tactical management platform for GTA V RolePlay & Euro Truck Simulator 2 convoy commanders. Real-time rosters, squad applications, custom profiles, and convoy scheduling.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* CTA Main Google Login Button */}
+            <div className="pt-4 flex items-center justify-center">
               <button
                 onClick={onGoogleSignIn}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-95 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center space-x-3 shadow-[0_0_30px_rgba(250,204,21,0.25)] transition-all hover:scale-105 cursor-pointer"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:opacity-95 text-slate-950 font-black text-base uppercase tracking-wider flex items-center justify-center space-x-3 shadow-[0_0_40px_rgba(250,204,21,0.3)] transition-all hover:scale-105 cursor-pointer"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path
                     fill="#000000"
                     d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -143,16 +133,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
                     d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.59l3.99 3.14c.95-2.83 3.6-4.98 6.72-4.98z"
                   />
                 </svg>
-                <span>Sign in with Google</span>
-              </button>
-
-              <button
-                onClick={onDemoSignIn}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#12141c] hover:bg-[#181b26] text-yellow-400 border-2 border-yellow-500/40 font-bold text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer"
-              >
-                <Sparkles className="w-5 h-5 text-yellow-400" />
-                <span>Explore Guest Demo</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
+                <span>Sign in with Google Account</span>
               </button>
             </div>
 
@@ -241,9 +222,9 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center border border-yellow-500/30 group-hover:scale-110 transition-transform">
                 <Crown className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-extrabold text-white uppercase">Root Admin & 1-Family Control</h3>
+              <h3 className="text-lg font-extrabold text-white uppercase">Root Admin & Family Approvals</h3>
               <p className="text-slate-400 text-xs leading-relaxed">
-                Super-Admin master console for basharat81253@gmail.com with member family join requests and strict 1-family limit.
+                Super-Admin master console for basharat81253@gmail.com with member family approvals and 1-family rule.
               </p>
               <div className="flex items-center space-x-2 text-xs text-yellow-400 font-mono font-bold pt-2">
                 <CheckCircle2 className="w-4 h-4" />
