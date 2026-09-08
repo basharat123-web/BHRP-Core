@@ -11,16 +11,33 @@ interface VoiceRoomProps {
 export default function VoiceRoom({ roomID, userID, userName, onLeave }: VoiceRoomProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const zpRef = useRef<any>(null);
+  const onLeaveRef = useRef(onLeave);
+
+  // Keep the latest onLeave callback without triggering re-renders
+  useEffect(() => {
+    onLeaveRef.current = onLeave;
+  }, [onLeave]);
 
   useEffect(() => {
+    if (!containerRef.current || zpRef.current) return;
+    
+    let isMounted = true;
+
     const startVoiceChat = async () => {
       // 1. Dynamically import ZegoCloud to avoid SSR issues
       const { ZegoUIKitPrebuilt } = await import('@zegocloud/zego-uikit-prebuilt');
+
+      if (!isMounted) return;
 
       // 2. Add API details from env
       const appID = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID);
       const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET || '';
       
+      if (!appID || !serverSecret) {
+        console.error("ZegoCloud App ID or Server Secret is missing.");
+        return;
+      }
+
       // 3. Generate Token
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
         appID, 
@@ -54,25 +71,25 @@ export default function VoiceRoom({ roomID, userID, userName, onLeave }: VoiceRo
           },
         },
         onLeaveRoom: () => {
-          if (onLeave) onLeave();
+          if (onLeaveRef.current) onLeaveRef.current();
         }
       });
     };
 
-    if (containerRef.current) {
-      startVoiceChat();
-    }
+    startVoiceChat();
     
     return () => {
+      isMounted = false;
       if (zpRef.current) {
         try {
           zpRef.current.destroy();
+          zpRef.current = null;
         } catch (e) {
           console.error("Error destroying Zego room", e);
         }
       }
     };
-  }, [roomID, userID, userName, onLeave]);
+  }, [roomID, userID, userName]); // Removed onLeave from dependencies!
 
   return (
     <div className="w-full flex flex-col items-center mt-6">
