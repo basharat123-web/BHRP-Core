@@ -5,6 +5,7 @@ import Peer from 'simple-peer';
 import { Mic, MicOff, PhoneOff, Radio, Users, Shield, Crown, Volume2, VolumeX, CheckCircle2, AlertTriangle, Wand2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/lib/types';
+import VoiceRoom from '@/components/VoiceRoom';
 
 interface VoiceRoomMember {
   id: string;
@@ -574,6 +575,15 @@ export const VoiceRoomPanel: React.FC<{ userProfile: UserProfile; organizations?
           <audio key={user.id} id={`voice-audio-${user.id}`} autoPlay playsInline />
         ))}
       </div>
+
+      {activeRoomId && (
+        <VoiceRoom 
+          roomID={activeRoomId}
+          userID={userProfile.id}
+          userName={userProfile.fullName || 'Family Member'}
+          onLeave={leaveRoom}
+        />
+      )}
     </div>
   );
 };

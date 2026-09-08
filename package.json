@@ -11,6 +11,7 @@
     "@jitsi/rnnoise-wasm": "^0.2.1",
     "@supabase/supabase-js": "^2.48.1",
     "@types/simple-peer": "^9.11.9",
+    "@zegocloud/zego-uikit-prebuilt": "^2.18.4",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "next": "^15.2.1",
